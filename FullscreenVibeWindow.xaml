@@ -1,0 +1,667 @@
+<Window x:Class="LyricalWidget.FullscreenVibeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LyricalWidget - Fullscreen Vibe"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Background="#07090E"
+        WindowStartupLocation="CenterScreen"
+        Focusable="True">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="ProgressGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#38BDF8" Offset="0.0"/>
+            <GradientStop Color="#A855F7" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="VibeIconButton" TargetType="Button">
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#25FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="21" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#55FFFFFF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#80FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PillBarButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#26FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="pillBorder" CornerRadius="12" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pillBorder" Property="Background" Value="#45FFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentPillButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#020617"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="22,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#38BDF8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="accentBorder" CornerRadius="14" Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="accentBorder" Property="Background" Value="#7DD3FC"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="accentBorder" Property="Background" Value="#0EA5E9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid" ClipToBounds="True">
+        <!-- ========================================== -->
+        <!-- LAYER 0: TINTED DARK BACKGROUND            -->
+        <!-- ========================================== -->
+        <Border x:Name="TintedBackground" Background="#0C0F18" Panel.ZIndex="0" IsHitTestVisible="False"/>
+
+        <!-- ========================================== -->
+        <!-- LAYER 1: 4-5 COLOR FLUID GLASS ORBS CANVAS -->
+        <!-- Strictly isolated with CanvasShakeTransform -->
+        <!-- ========================================== -->
+        <Canvas x:Name="BackgroundOrbsCanvas" IsHitTestVisible="False" ClipToBounds="False" Panel.ZIndex="1">
+            <Canvas.RenderTransform>
+                <TranslateTransform x:Name="CanvasShakeTransform" X="0" Y="0"/>
+            </Canvas.RenderTransform>
+
+            <!-- Orb 0: Primary (Lush & Saturated) -->
+            <Ellipse x:Name="Orb0" Width="1000" Height="1000" Opacity="0.78">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop x:Name="Orb0Stop0" Color="#60A5FA" Offset="0.0"/>
+                        <GradientStop x:Name="Orb0Stop1" Color="#0060A5FA" Offset="1.0"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Orb0Scale" ScaleX="1.0" ScaleY="1.0" CenterX="500" CenterY="500"/>
+                        <TranslateTransform x:Name="Orb0Translate" X="0" Y="0"/>
+                    </TransformGroup>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+
+            <!-- Orb 1: Secondary -->
+            <Ellipse x:Name="Orb1" Width="1000" Height="1000" Opacity="0.70">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop x:Name="Orb1Stop0" Color="#A855F7" Offset="0.0"/>
+                        <GradientStop x:Name="Orb1Stop1" Color="#00A855F7" Offset="1.0"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Orb1Scale" ScaleX="1.0" ScaleY="1.0" CenterX="500" CenterY="500"/>
+                        <TranslateTransform x:Name="Orb1Translate" X="0" Y="0"/>
+                    </TransformGroup>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+
+            <!-- Orb 2: Accent -->
+            <Ellipse x:Name="Orb2" Width="1000" Height="1000" Opacity="0.68">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop x:Name="Orb2Stop0" Color="#EC4899" Offset="0.0"/>
+                        <GradientStop x:Name="Orb2Stop1" Color="#00EC4899" Offset="1.0"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Orb2Scale" ScaleX="1.0" ScaleY="1.0" CenterX="500" CenterY="500"/>
+                        <TranslateTransform x:Name="Orb2Translate" X="0" Y="0"/>
+                    </TransformGroup>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+
+            <!-- Orb 3: Highlight -->
+            <Ellipse x:Name="Orb3" Width="1000" Height="1000" Opacity="0.62">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop x:Name="Orb3Stop0" Color="#38BDF8" Offset="0.0"/>
+                        <GradientStop x:Name="Orb3Stop1" Color="#0038BDF8" Offset="1.0"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Orb3Scale" ScaleX="1.0" ScaleY="1.0" CenterX="500" CenterY="500"/>
+                        <TranslateTransform x:Name="Orb3Translate" X="0" Y="0"/>
+                    </TransformGroup>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+
+            <!-- Orb 4: Warm Glow / 5th Color -->
+            <Ellipse x:Name="Orb4" Width="1000" Height="1000" Opacity="0.58">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop x:Name="Orb4Stop0" Color="#F59E0B" Offset="0.0"/>
+                        <GradientStop x:Name="Orb4Stop1" Color="#00F59E0B" Offset="1.0"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Orb4Scale" ScaleX="1.0" ScaleY="1.0" CenterX="500" CenterY="500"/>
+                        <TranslateTransform x:Name="Orb4Translate" X="0" Y="0"/>
+                    </TransformGroup>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+        </Canvas>
+
+        <!-- ========================================== -->
+        <!-- LAYER 2: FROSTED GLASS OVERLAY & VIGNETTE  -->
+        <!-- ========================================== -->
+        <Border Background="#45080A12" IsHitTestVisible="False" Panel.ZIndex="2"/>
+        <Border x:Name="VignetteOverlay" IsHitTestVisible="False" Panel.ZIndex="3">
+            <Border.Background>
+                <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.65" RadiusY="0.65">
+                    <GradientStop Color="#00000000" Offset="0.35"/>
+                    <GradientStop x:Name="VignetteEdgeStop" Color="#7504060A" Offset="1.0"/>
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Continuous Giant Faint Outlined Title Marquee scrolling smoothly across bottom background -->
+        <Canvas x:Name="BottomMarqueeCanvas" Panel.ZIndex="3" IsHitTestVisible="False" ClipToBounds="True"
+                Height="140" VerticalAlignment="Bottom" Margin="0,0,0,24">
+            <StackPanel x:Name="MarqueeStack" Orientation="Horizontal" Opacity="0.05">
+                <StackPanel.RenderTransform>
+                    <TranslateTransform x:Name="MarqueeTranslate" X="0" Y="0"/>
+                </StackPanel.RenderTransform>
+            </StackPanel>
+        </Canvas>
+
+        <!-- ========================================== -->
+        <!-- LAYER 3: MAIN CONTENT (LANDSCAPE / PORTRAIT) -->
+        <!-- ========================================== -->
+        <!-- Landscape Split Layout (Default) -->
+        <Grid x:Name="LandscapeLayout" Margin="48,36,48,36" Panel.ZIndex="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LandscapeColLeft" Width="0.44*"/>
+                <ColumnDefinition x:Name="LandscapeColRight" Width="0.56*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side: Album Art + Meta + Progress + Controls -->
+            <Grid x:Name="AlbumSideContainer" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,32,0" ClipToBounds="False">
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" ClipToBounds="False">
+                    <!-- Album Cover + Pop-out Volume Bar Shared Hover Zone -->
+                    <Grid x:Name="AlbumHoverZone" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent"
+                          Width="442" Margin="0,0,-62,0" ClipToBounds="False">
+                        <!-- Album Cover Card with Ambient Aura Glow -->
+                        <Border x:Name="AlbumCardBorder" Width="380" Height="380" HorizontalAlignment="Left" CornerRadius="28" Background="#181B26">
+                            <Border.Effect>
+                                <DropShadowEffect x:Name="AlbumAuraGlow" BlurRadius="52" ShadowDepth="8" Direction="270" Color="#60A5FA" Opacity="0.55"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Path x:Name="AlbumFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                      Fill="#64748B" Width="72" Height="72" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Image x:Name="AlbumCoverImage" Stretch="UniformToFill">
+                                    <Image.Clip>
+                                        <RectangleGeometry RadiusX="28" RadiusY="28" Rect="0,0,380,380"/>
+                                    </Image.Clip>
+                                </Image>
+
+                                <!-- Dark Translucent Scrim for High-Contrast Hover Media Controls -->
+                                <Border x:Name="AlbumCoverScrim" CornerRadius="28" Background="#000000" Opacity="0" IsHitTestVisible="False"/>
+
+                                <!-- Hover-only Media Controls Pill -->
+                                <Border x:Name="MediaControlsOverlay" CornerRadius="24" Background="#D00B0E17"
+                                        BorderBrush="#40FFFFFF" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Padding="14,8" Opacity="0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform x:Name="MediaControlsScale" ScaleX="0.92" ScaleY="0.92"/>
+                                    </Border.RenderTransform>
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="20" Direction="270" ShadowDepth="3" Color="#000000" Opacity="0.6"/>
+                                    </Border.Effect>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource VibeIconButton}" Click="OnPrevClicked" ToolTip="Previous Track">
+                                            <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="#FFFFFF" Stretch="Uniform" Width="14" Height="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource VibeIconButton}" Click="OnPlayPauseClicked" Margin="12,0" ToolTip="Play / Pause">
+                                            <Path x:Name="PlayPauseIcon" Data="M8 5v14l11-7z" Fill="#FFFFFF" Stretch="Uniform" Width="16" Height="16"/>
+                                        </Button>
+                                        <Button Style="{StaticResource VibeIconButton}" Click="OnNextClicked" ToolTip="Next Track">
+                                            <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="#FFFFFF" Stretch="Uniform" Width="14" Height="14"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Fluid Pop-Out Vertical Frosted-Glass Volume Pill (anchored just off right edge of Album Card) -->
+                        <Border x:Name="VolumePopoutPill" Width="40" Height="280" HorizontalAlignment="Left" Margin="396,0,0,0"
+                                VerticalAlignment="Center" CornerRadius="20" Background="#DD0C101A" BorderBrush="#38FFFFFF" BorderThickness="1"
+                                Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.0,0.5">
+                            <Border.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="VolumePillScale" ScaleX="0.92" ScaleY="0.92"/>
+                                    <TranslateTransform x:Name="VolumePillTranslate" X="-16" Y="0"/>
+                                </TransformGroup>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="22" Direction="270" ShadowDepth="4" Color="#000000" Opacity="0.65"/>
+                            </Border.Effect>
+                            <Grid Margin="0,12,0,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/> <!-- Subtle % Indicator -->
+                                    <RowDefinition Height="*"/>    <!-- Slim Volume Bar -->
+                                    <RowDefinition Height="Auto"/> <!-- Mute/Speaker Toggle -->
+                                </Grid.RowDefinitions>
+
+                                <!-- % Indicator -->
+                                <TextBlock x:Name="VolumePercentText" Grid.Row="0" Text="100%" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="#CBD5E1" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+                                <!-- Slim glowing vertical fill bar container -->
+                                <Grid Grid.Row="1" x:Name="VolumeSliderTrack" Cursor="Hand" Background="Transparent" Width="24"
+                                      MouseLeftButtonDown="OnVolumeTrackMouseDown" MouseLeftButtonUp="OnVolumeTrackMouseUp" MouseMove="OnVolumeTrackMouseMove">
+                                    <!-- Track background line -->
+                                    <Border Width="6" CornerRadius="3" Background="#26FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                                    <!-- Glowing fill line anchored at bottom -->
+                                    <Border x:Name="VolumeFillBar" Width="6" CornerRadius="3" Background="#60A5FA"
+                                            HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="100">
+                                        <Border.Effect>
+                                            <DropShadowEffect x:Name="VolumeFillGlow" BlurRadius="10" ShadowDepth="0" Color="#60A5FA" Opacity="0.65"/>
+                                        </Border.Effect>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Mute/Speaker Toggle Button -->
+                                <Button Grid.Row="2" Style="{StaticResource VibeIconButton}" Width="32" Height="32" Margin="0,8,0,0"
+                                        HorizontalAlignment="Center" Click="OnVolumeMuteToggleClicked" ToolTip="Mute / Unmute">
+                                    <Path x:Name="VolumeSpeakerIcon" Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                                          Fill="#CBD5E1" Stretch="Uniform" Width="13" Height="13"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Track Metadata -->
+                    <TextBlock x:Name="TrackTitleText" Text="Track Title" FontSize="26" FontWeight="Bold"
+                               Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" MaxWidth="380" Margin="0,22,0,0"/>
+                    <TextBlock x:Name="TrackArtistText" Text="Artist Name" FontSize="16" FontWeight="Medium"
+                               Foreground="#CBD5E1" TextTrimming="CharacterEllipsis" MaxWidth="380" Margin="0,4,0,0"/>
+
+                    <!-- Interactive Seekable Progress Bar -->
+                    <Border x:Name="ProgressBarTrack" Width="380" Height="6" CornerRadius="3" Background="#33FFFFFF"
+                            Margin="0,16,0,0" Cursor="Hand" MouseLeftButtonDown="OnProgressBarMouseDown">
+                        <Grid HorizontalAlignment="Left" x:Name="ProgressBarFill" Width="0">
+                            <Border x:Name="ProgressBarFillBorder" CornerRadius="3">
+                                <Border.Background>
+                                    <LinearGradientBrush x:Name="ProgressBarGradient" StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop x:Name="ProgressStop0" Color="#38BDF8" Offset="0.0"/>
+                                        <GradientStop x:Name="ProgressStop1" Color="#A855F7" Offset="1.0"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Grid Width="380" Margin="0,6,0,0">
+                        <TextBlock x:Name="CurrentTimeText" Text="0:00" FontSize="11" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Left"/>
+                        <TextBlock x:Name="TotalTimeText" Text="0:00" FontSize="11" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <!-- Right Side: Fluid Beautiful Lyrics Viewport with Click-to-Seek -->
+            <Grid x:Name="LyricsSideContainer" Grid.Column="1" ClipToBounds="True" Panel.ZIndex="4">
+                <Border x:Name="LyricsViewport" ClipToBounds="True" Visibility="Visible" Opacity="1.0">
+                    <Border.OpacityMask>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0.0"/>
+                            <GradientStop x:Name="LyricsMaskTop" Color="#FF000000" Offset="0.12"/>
+                            <GradientStop x:Name="LyricsMaskBottom" Color="#FF000000" Offset="0.88"/>
+                            <GradientStop Color="#00000000" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.OpacityMask>
+
+                    <Canvas x:Name="LyricsCanvas" ClipToBounds="True" Visibility="Visible" Opacity="1.0"/>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Portrait / Vertical Monitor Layout (Auto-engaged when Height > Width) -->
+        <Grid x:Name="PortraitLayout" Visibility="Collapsed" Margin="24,36,24,24" Panel.ZIndex="4">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="PortraitRowTop" Height="0.38*"/>
+                <RowDefinition x:Name="PortraitRowBottom" Height="0.62*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top Row: Compact Album Art & Controls -->
+            <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
+                <!-- Shared Hover Zone for Portrait -->
+                <Grid x:Name="PortraitAlbumHoverZone" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent"
+                      Width="256" Margin="0,0,-56,0" ClipToBounds="False">
+                    <Border x:Name="PortraitAlbumCardBorder" Width="200" Height="200" HorizontalAlignment="Left" CornerRadius="20" Background="#181B26">
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="PortraitAlbumAuraGlow" BlurRadius="36" ShadowDepth="4" Direction="270" Color="#60A5FA" Opacity="0.55"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Path x:Name="PortraitAlbumFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                  Fill="#64748B" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Image x:Name="PortraitAlbumCoverImage" Stretch="UniformToFill">
+                                <Image.Clip>
+                                    <RectangleGeometry RadiusX="20" RadiusY="20" Rect="0,0,200,200"/>
+                                </Image.Clip>
+                            </Image>
+
+                            <!-- Scrim -->
+                            <Border x:Name="PortraitAlbumCoverScrim" CornerRadius="20" Background="#000000" Opacity="0" IsHitTestVisible="False"/>
+
+                            <!-- Portrait Media Controls Pill -->
+                            <Border x:Name="PortraitMediaControlsOverlay" CornerRadius="18" Background="#D00B0E17"
+                                    BorderBrush="#40FFFFFF" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Padding="8,4" Opacity="0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="PortraitMediaControlsScale" ScaleX="0.92" ScaleY="0.92"/>
+                                </Border.RenderTransform>
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="2" Color="#000000" Opacity="0.6"/>
+                                </Border.Effect>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource VibeIconButton}" Width="32" Height="32" Click="OnPrevClicked" ToolTip="Previous Track">
+                                        <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="#FFFFFF" Stretch="Uniform" Width="10" Height="10"/>
+                                    </Button>
+                                    <Button Style="{StaticResource VibeIconButton}" Width="32" Height="32" Click="OnPlayPauseClicked" Margin="6,0" ToolTip="Play / Pause">
+                                        <Path x:Name="PortraitPlayPauseIcon" Data="M8 5v14l11-7z" Fill="#FFFFFF" Stretch="Uniform" Width="12" Height="12"/>
+                                    </Button>
+                                    <Button Style="{StaticResource VibeIconButton}" Width="32" Height="32" Click="OnNextClicked" ToolTip="Next Track">
+                                        <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="#FFFFFF" Stretch="Uniform" Width="10" Height="10"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Portrait Pop-Out Volume Pill -->
+                    <Border x:Name="PortraitVolumePopoutPill" Width="36" Height="170" HorizontalAlignment="Left" Margin="212,0,0,0"
+                            VerticalAlignment="Center" CornerRadius="18" Background="#DD0C101A" BorderBrush="#38FFFFFF" BorderThickness="1"
+                            Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.0,0.5">
+                        <Border.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="PortraitVolumePillScale" ScaleX="0.92" ScaleY="0.92"/>
+                                <TranslateTransform x:Name="PortraitVolumePillTranslate" X="-12" Y="0"/>
+                            </TransformGroup>
+                        </Border.RenderTransform>
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="16" Direction="270" ShadowDepth="3" Color="#000000" Opacity="0.65"/>
+                        </Border.Effect>
+                        <Grid Margin="0,8,0,6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="PortraitVolumePercentText" Grid.Row="0" Text="100%" FontSize="9" FontWeight="SemiBold"
+                                       Foreground="#CBD5E1" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+
+                            <Grid Grid.Row="1" x:Name="PortraitVolumeSliderTrack" Cursor="Hand" Background="Transparent" Width="20"
+                                  MouseLeftButtonDown="OnPortraitVolumeTrackMouseDown" MouseLeftButtonUp="OnPortraitVolumeTrackMouseUp" MouseMove="OnPortraitVolumeTrackMouseMove">
+                                <Border Width="5" CornerRadius="2.5" Background="#26FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                                <Border x:Name="PortraitVolumeFillBar" Width="5" CornerRadius="2.5" Background="#60A5FA"
+                                        HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="60">
+                                    <Border.Effect>
+                                        <DropShadowEffect x:Name="PortraitVolumeFillGlow" BlurRadius="8" ShadowDepth="0" Color="#60A5FA" Opacity="0.65"/>
+                                    </Border.Effect>
+                                </Border>
+                            </Grid>
+
+                            <Button Grid.Row="2" Style="{StaticResource VibeIconButton}" Width="28" Height="28" Margin="0,6,0,0"
+                                    HorizontalAlignment="Center" Click="OnVolumeMuteToggleClicked" ToolTip="Mute / Unmute">
+                                <Path x:Name="PortraitVolumeSpeakerIcon" Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                                      Fill="#CBD5E1" Stretch="Uniform" Width="11" Height="11"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <TextBlock x:Name="PortraitTrackTitleText" Text="Track Title" FontSize="18" FontWeight="Bold"
+                           Foreground="#FFFFFF" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="0,10,0,0"/>
+                <TextBlock x:Name="PortraitTrackArtistText" Text="Artist Name" FontSize="13" Foreground="#CBD5E1"
+                           TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="0,2,0,0"/>
+
+                <!-- Interactive Seekable Progress Bar -->
+                <Border Width="280" Height="5" CornerRadius="2.5" Background="#33FFFFFF" Margin="0,10,0,0" Cursor="Hand" MouseLeftButtonDown="OnProgressBarMouseDown">
+                    <Grid HorizontalAlignment="Left" x:Name="PortraitProgressBarFill" Width="0">
+                        <Border x:Name="PortraitProgressBarFillBorder" CornerRadius="2.5">
+                            <Border.Background>
+                                <LinearGradientBrush x:Name="PortraitProgressBarGradient" StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop x:Name="PortraitProgressStop0" Color="#38BDF8" Offset="0.0"/>
+                                    <GradientStop x:Name="PortraitProgressStop1" Color="#A855F7" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- Bottom Row: Lyrics Viewport in Portrait -->
+            <Border Grid.Row="1" x:Name="PortraitLyricsViewport" ClipToBounds="True" Margin="0,12,0,0" Panel.ZIndex="4" Visibility="Visible" Opacity="1.0">
+                <Border.OpacityMask>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#00000000" Offset="0.0"/>
+                        <GradientStop x:Name="PortraitLyricsMaskTop" Color="#FF000000" Offset="0.10"/>
+                        <GradientStop x:Name="PortraitLyricsMaskBottom" Color="#FF000000" Offset="0.90"/>
+                        <GradientStop Color="#00000000" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Border.OpacityMask>
+
+                <Canvas x:Name="PortraitLyricsCanvas" ClipToBounds="True" Visibility="Visible" Opacity="1.0"/>
+            </Border>
+        </Grid>
+
+        <!-- ========================================== -->
+        <!-- LAYER 4: PERSISTENT 2D WORLD & VIRTUAL CAMERA -->
+        <!-- ========================================== -->
+        <!-- Solid 3-Color Graphic Poster Backdrop (Poster Mode) -->
+        <Border x:Name="PosterBackdrop" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" Background="#09090B"/>
+
+        <Canvas x:Name="KineticViewportCanvas" Panel.ZIndex="5" ClipToBounds="True" IsHitTestVisible="False"
+                Visibility="Collapsed" Opacity="0">
+            <Canvas x:Name="KineticWorldCanvas" ClipToBounds="False">
+                <Canvas.RenderTransform>
+                    <MatrixTransform x:Name="WorldCameraMatrix"/>
+                </Canvas.RenderTransform>
+            </Canvas>
+        </Canvas>
+
+        <!-- Fullscreen Intro Title + Artist Hero Card (stacked poster aesthetic) -->
+        <Grid x:Name="IntroHeroCard" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="5"
+              IsHitTestVisible="False" Opacity="0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="IntroHeroScale" ScaleX="1.0" ScaleY="1.0"/>
+                    <TranslateTransform x:Name="IntroHeroTranslate" X="0" Y="0"/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                <TextBlock x:Name="IntroHeroTitle" Text="TRACK TITLE" FontSize="62" FontWeight="Black"
+                           FontFamily="Segoe UI Variable Display, Bahnschrift, Segoe UI"
+                           Foreground="#FFFFFF" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="920" HorizontalAlignment="Center">
+                    <TextBlock.Effect>
+                        <DropShadowEffect BlurRadius="32" Direction="270" ShadowDepth="4" Color="#000000" Opacity="0.7"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+                <Border x:Name="IntroHeroArtistPill" CornerRadius="12" Background="#EC4899" Padding="20,7"
+                        HorizontalAlignment="Center" Margin="0,18,0,0">
+                    <Border.RenderTransform>
+                        <SkewTransform AngleX="-10"/>
+                    </Border.RenderTransform>
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Direction="270" ShadowDepth="2" Color="#000000" Opacity="0.5"/>
+                    </Border.Effect>
+                    <TextBlock x:Name="IntroHeroArtist" Text="ARTIST NAME" FontSize="18" FontWeight="Bold"
+                               Foreground="#FFFFFF" TextAlignment="Center"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- ========================================== -->
+        <!-- LAYER 5: KINETIC BOTTOM-LEFT GLASS BADGE   -->
+        <!-- ========================================== -->
+        <Border x:Name="KineticCornerBadge" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Margin="36,0,0,32" CornerRadius="18" Background="#D50C101A" BorderBrush="#35FFFFFF"
+                BorderThickness="1" Padding="12,10" Panel.ZIndex="6" Visibility="Collapsed" Opacity="0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18" Direction="270" ShadowDepth="3" Color="#000000" Opacity="0.55"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Album Art Thumbnail -->
+                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#181B26" Margin="0,0,12,0">
+                    <Grid>
+                        <Path Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                              Fill="#64748B" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image x:Name="KineticCornerImage" Stretch="UniformToFill">
+                            <Image.Clip>
+                                <RectangleGeometry RadiusX="10" RadiusY="10" Rect="0,0,44,44"/>
+                            </Image.Clip>
+                        </Image>
+                    </Grid>
+                </Border>
+
+                <!-- Track Meta & Mini Progress Bar -->
+                <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
+                    <TextBlock x:Name="KineticCornerTitle" Text="Track Title" FontSize="13" FontWeight="Bold"
+                               Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                    <TextBlock x:Name="KineticCornerArtist" Text="Artist Name" FontSize="11" FontWeight="Medium"
+                               Foreground="#94A3B8" TextTrimming="CharacterEllipsis" MaxWidth="220" Margin="0,2,0,0"/>
+
+                    <!-- Slim Mini Progress Bar -->
+                    <Border Width="190" Height="4" CornerRadius="2" Background="#26FFFFFF" Margin="0,6,0,0">
+                        <Grid HorizontalAlignment="Left" x:Name="KineticCornerProgressFill" Width="0">
+                            <Border x:Name="KineticCornerProgressBarBorder" CornerRadius="2">
+                                <Border.Background>
+                                    <LinearGradientBrush x:Name="KineticCornerProgressGradient" StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop x:Name="KineticCornerStop0" Color="#38BDF8" Offset="0.0"/>
+                                        <GradientStop x:Name="KineticCornerStop1" Color="#A855F7" Offset="1.0"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Top-Right Minimal Mode Bar (auto-hides after 2.5s of no mouse movement) -->
+        <Border x:Name="TopModeBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,24,32,0"
+                CornerRadius="16" Background="#CC0C101A" BorderBrush="#35FFFFFF" BorderThickness="1"
+                Padding="12,6" Opacity="0" Panel.ZIndex="10">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18" Direction="270" ShadowDepth="2" Color="#000000" Opacity="0.5"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="VIBE MODE" FontSize="10" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button x:Name="BtnToggleLayoutMode" Content="Mode: Split" Style="{StaticResource PillBarButton}"
+                        Margin="0,0,8,0" Click="OnToggleLayoutModeClicked" ToolTip="Toggle Split | Kinetic (Beta) Mode (K)"/>
+                <StackPanel x:Name="KineticControlsPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,8,0">
+                    <Button x:Name="BtnToggleKineticPreset" Content="Style: Editorial" Style="{StaticResource PillBarButton}"
+                            Margin="0,0,8,0" Click="OnToggleKineticPresetClicked" ToolTip="Toggle Kinetic Style (Editorial | Poster)"/>
+                    <Button x:Name="BtnTogglePosterDim" Content="Tone: Dim" Style="{StaticResource PillBarButton}"
+                            Margin="0,0,8,0" Click="OnTogglePosterDimClicked" ToolTip="Toggle Poster Night-Safe Dim Mode (Dim | Vivid)"/>
+                    <Button x:Name="BtnToggleVibe" Content="Vibe: Auto" Style="{StaticResource PillBarButton}"
+                            Click="OnToggleVibeClicked" ToolTip="Cycle Auto / Calm / Rap / Pop"/>
+                </StackPanel>
+                <Button x:Name="BtnToggleAudioReactive" Content="Audio Reactive: ON" Style="{StaticResource PillBarButton}"
+                        Margin="0,0,8,0" Click="OnToggleAudioReactiveClicked"/>
+                <Button x:Name="BtnToggleThemeLyrics" Content="Theme Lyrics: ON" Style="{StaticResource PillBarButton}"
+                        Margin="0,0,8,0" Click="OnToggleThemeLyricsClicked" ToolTip="Toggle Album-Themed Lyric Colors"/>
+                <Button Content="Exit (Esc)" Style="{StaticResource PillBarButton}" Click="OnExitClicked"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ========================================== -->
+        <!-- LAYER 7: KINETIC BETA CONFIRMATION MODAL   -->
+        <!-- ========================================== -->
+        <Grid x:Name="KineticBetaModalOverlay" Panel.ZIndex="100" Visibility="Collapsed" Opacity="0.0">
+            <!-- Dim Backdrop with click to dismiss -->
+            <Border Background="#A5000000" MouseDown="OnKineticBetaModalBackdropClicked"/>
+
+            <!-- Centered Frosted Glass Modal Card -->
+            <Border x:Name="KineticBetaModalCard"
+                    Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#E610141D"
+                    BorderBrush="#40FFFFFF" BorderThickness="1.2"
+                    CornerRadius="18" Padding="28,26,28,24">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="40" Color="#000000" Opacity="0.75" ShadowDepth="10"/>
+                </Border.Effect>
+                <StackPanel Orientation="Vertical">
+                    <!-- Title Row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14" VerticalAlignment="Center">
+                        <Border Width="36" Height="36" CornerRadius="10" Background="#2638BDF8" BorderBrush="#5038BDF8" BorderThickness="1" Margin="0,0,12,0">
+                            <Path Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z" 
+                                  Fill="#38BDF8" Stretch="Uniform" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Kinetic Mode (Beta)" FontSize="20" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Message Body -->
+                    <TextBlock Text="Kinetic Mode is still in beta. Animations and pacing are still being refined."
+                               FontSize="14" Foreground="#CBD5E1" TextWrapping="Wrap" LineHeight="20" Margin="0,0,0,24"/>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="BtnKineticBetaCancel" Content="Cancel" Style="{StaticResource PillBarButton}"
+                                Padding="18,7" Margin="0,0,12,0" FontSize="13" FontWeight="SemiBold"
+                                Click="OnKineticBetaCancelClicked"/>
+                        <Button x:Name="BtnKineticBetaOk" Content="OK" Style="{StaticResource AccentPillButton}"
+                                Click="OnKineticBetaOkClicked"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
