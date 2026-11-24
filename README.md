@@ -18,6 +18,10 @@
 
 ## Live Demos
 
+### v2.1.0 Fullscreen Update (`LiveCode` & `SpotlightFog`)
+
+https://github.com/user-attachments/assets/a8525f2e-b613-4b09-bdd5-730abd115832
+
 ### In-Game Overlay (Click-Through & Gaming Mode)
 
 https://github.com/user-attachments/assets/9a0483ba-2bb4-4608-8637-0eae3b832288
@@ -52,8 +56,9 @@ https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d
 
 * **Real-Time SMTC Sync** — Hooks directly into Windows Media Controls for millisecond-interpolated sync with Spotify and desktop players.
 * **Gaming-Friendly Overlay** — Click-through locking, dedicated Gaming Mode, and **Transparent** or **Glassify** frosted card styles with dynamic album art colors.
+* **Fullscreen Vibe Mode (`v2.1.0`)** — Includes **Split Mode**, **Live Code** (syntax-highlighted lyrics with colored blocks and artist cursor), **Spotlight Fog** (spring-driven vertical word scroll over frosted fog), plus **Editorial** and **Poster** presets with live preset switching.
+* **1200×1200 HD Album Artwork** — Fetches high-resolution covers automatically with a fluid color backdrop fallback and anti-grey accent lift on dark art.
 * **Minimal Idle Clock** — Automatically transitions to a floating or glass clock when music pauses.
-* **Fullscreen Vibe Mode** — Features **Split Mode** (swirling multi-color album art backdrop with hover media and volume controls) plus an experimental **60 FPS Kinetic Mode (Beta)** with Editorial and night-safe Poster presets.
 * **Fast Offline Caching** — Races LRCLIB and NetEase in parallel and caches synced lyrics locally for 30 days.
 * **Built-In Auto-Updater** — Checks GitHub Releases automatically and updates in place without touching your saved settings.
 
@@ -75,20 +80,3 @@ https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d
 git clone [https://github.com/9headache/LyricalWidget.git](https://github.com/9headache/LyricalWidget.git)
 cd LyricalWidget
 dotnet run
-```
-
-Build a single-file standalone `.exe`:
-
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o "./Release"
-```
-
-</details>
-
----
-
-<div align="center">
-
-*If LyricalWidget upgrades your desktop or gaming setup, consider starring the repository.*
-
-</div>
