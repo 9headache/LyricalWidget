@@ -44,7 +44,35 @@ public partial class FullscreenVibeWindow : Window
         TimeSpan effectivePos,
         double currentTimeSec)
     {
-            // 2D Virtual Camera World update with smooth exponential damping
+        try
+        {
+            if (_currentKineticPreset == KineticPreset.SpotlightFog)
+            {
+                _spotlightFogRenderer.UpdateFrame(
+                    dt,
+                    effectivePos,
+                    currentTimeSec,
+                    _currentBassEnergy,
+                    _currentBeatImpulse,
+                    _mediaService.IsPlaying,
+                    _isInstrumentalMode);
+                return;
+            }
+
+            if (_currentKineticPreset == KineticPreset.LiveCode)
+            {
+                _liveCodeRenderer.UpdateFrame(
+                    dt,
+                    effectivePos,
+                    currentTimeSec,
+                    _currentBassEnergy,
+                    _currentBeatImpulse,
+                    _mediaService.IsPlaying,
+                    _isInstrumentalMode);
+                return;
+            }
+
+        // 2D Virtual Camera World update with smooth exponential damping
             _cameraController.Update(dt, _timeElapsedSec, _currentBassEnergy, _currentBeatImpulse, _kineticVibe);
             _cameraController.ApplyMatrix(ActualWidth, ActualHeight, WorldCameraMatrix, _timeElapsedSec);
 
@@ -346,6 +374,11 @@ public partial class FullscreenVibeWindow : Window
 
                 p.Update(effectivePos, dt, currentTimeSec, _currentBassEnergy, _currentBeatImpulse);
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[UpdateKineticFrame] Error in preset {_currentKineticPreset}: {ex.Message}");
+        }
     }
 
 }

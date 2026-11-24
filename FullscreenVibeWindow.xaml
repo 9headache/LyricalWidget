@@ -239,7 +239,7 @@
                             <Grid>
                                 <Path x:Name="AlbumFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                                       Fill="#64748B" Width="72" Height="72" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <Image x:Name="AlbumCoverImage" Stretch="UniformToFill">
+                                <Image x:Name="AlbumCoverImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality">
                                     <Image.Clip>
                                         <RectangleGeometry RadiusX="28" RadiusY="28" Rect="0,0,380,380"/>
                                     </Image.Clip>
@@ -385,7 +385,7 @@
                         <Grid>
                             <Path x:Name="PortraitAlbumFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                                   Fill="#64748B" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <Image x:Name="PortraitAlbumCoverImage" Stretch="UniformToFill">
+                            <Image x:Name="PortraitAlbumCoverImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality">
                                 <Image.Clip>
                                     <RectangleGeometry RadiusX="20" RadiusY="20" Rect="0,0,200,200"/>
                                 </Image.Clip>
@@ -498,19 +498,133 @@
         </Grid>
 
         <!-- ========================================== -->
-        <!-- LAYER 4: PERSISTENT 2D WORLD & VIRTUAL CAMERA -->
+        <!-- LAYER 4: ISOLATED HOST CONTAINERS PER KINETIC PRESET -->
         <!-- ========================================== -->
-        <!-- Solid 3-Color Graphic Poster Backdrop (Poster Mode) -->
-        <Border x:Name="PosterBackdrop" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" Background="#09090B"/>
+        <!-- Standard 2D Virtual Camera Host (Editorial & Poster Modes) -->
+        <Grid x:Name="KineticStandardHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
+            <!-- Solid 3-Color Graphic Poster Backdrop (Poster Mode) -->
+            <Border x:Name="PosterBackdrop" Visibility="Collapsed" IsHitTestVisible="False" Background="#09090B"/>
 
-        <Canvas x:Name="KineticViewportCanvas" Panel.ZIndex="5" ClipToBounds="True" IsHitTestVisible="False"
-                Visibility="Collapsed" Opacity="0">
-            <Canvas x:Name="KineticWorldCanvas" ClipToBounds="False">
-                <Canvas.RenderTransform>
-                    <MatrixTransform x:Name="WorldCameraMatrix"/>
-                </Canvas.RenderTransform>
+            <Canvas x:Name="KineticViewportCanvas" ClipToBounds="True" IsHitTestVisible="False"
+                    Visibility="Visible" Opacity="1.0">
+                <Canvas x:Name="KineticWorldCanvas" ClipToBounds="False">
+                    <Canvas.RenderTransform>
+                        <MatrixTransform x:Name="WorldCameraMatrix"/>
+                    </Canvas.RenderTransform>
+                </Canvas>
             </Canvas>
-        </Canvas>
+        </Grid>
+
+        <!-- Organic Frosted Fog & Live Album Backdrop (SpotlightFog Mode) -->
+        <Grid x:Name="SpotlightFogHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
+            <!-- Artwork Group (fades in/out depending on HdArtwork vs FluidColor) -->
+            <Grid x:Name="SpotlightArtworkGroup" Opacity="1.0">
+                <!-- Base Sharp Album Cover (Breathing 1.00 -> 1.04) -->
+                <Image x:Name="SpotlightSharpImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.RenderTransform>
+                        <ScaleTransform x:Name="SpotlightSharpScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Image.RenderTransform>
+                </Image>
+
+                <!-- Pre-Blurred Album Cover Copy with Animated Multi-Stop RadialGradient Fog Mask -->
+                <Image x:Name="SpotlightBlurredImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.RenderTransform>
+                        <ScaleTransform x:Name="SpotlightBlurredScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Image.RenderTransform>
+                    <Image.OpacityMask>
+                        <RadialGradientBrush x:Name="SpotlightFogMask" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                            <GradientStop x:Name="FogStop0" Color="#FF000000" Offset="0.0"/>
+                            <GradientStop x:Name="FogStop1" Color="#CC000000" Offset="0.30"/>
+                            <GradientStop x:Name="FogStop2" Color="#55000000" Offset="0.65"/>
+                            <GradientStop x:Name="FogStop3" Color="#00000000" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Image.OpacityMask>
+                </Image>
+
+                <!-- Dark Radial Vignette behind text region to guarantee contrast on bright album covers -->
+                <Border x:Name="SpotlightVignette" Background="#000000" Opacity="0.48" IsHitTestVisible="False">
+                    <Border.OpacityMask>
+                        <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.65" RadiusY="0.55">
+                            <GradientStop Color="#FF000000" Offset="0.0"/>
+                            <GradientStop Color="#DD000000" Offset="0.30"/>
+                            <GradientStop Color="#55000000" Offset="0.65"/>
+                            <GradientStop Color="#00000000" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Border.OpacityMask>
+                </Border>
+            </Grid>
+
+            <!-- Continuous Vertical Scroll Conveyor Canvas -->
+            <Canvas x:Name="SpotlightLyricsCanvas" ClipToBounds="True" IsHitTestVisible="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+        </Grid>
+
+        <!-- LAYER 4.6: LIVECODE IDE VISUALIZER HOST -->
+        <Grid x:Name="LiveCodeHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
+            <!-- Atmospheric Artwork Backdrop (Reusing HighResArtworkService) -->
+            <Grid x:Name="LiveCodeArtworkGroup" Opacity="1.0" Margin="-200">
+                <Image x:Name="LiveCodeBackdropImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="LiveCodeBackdropScale" ScaleX="1.25" ScaleY="1.25"/>
+                            <TranslateTransform x:Name="LiveCodeBackdropParallax" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Image.RenderTransform>
+                </Image>
+            </Grid>
+
+            <!-- Lightened Moody IDE Tint (~54%) & Vignette (Artwork and bokeh breathe behind colored code) -->
+            <Border Background="#880A0D14" IsHitTestVisible="False"/>
+            <Border Background="#2E000000" IsHitTestVisible="False">
+                <Border.OpacityMask>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.75" RadiusY="0.65">
+                        <GradientStop Color="#00000000" Offset="0.30"/>
+                        <GradientStop Color="#80000000" Offset="0.75"/>
+                        <GradientStop Color="#C0000000" Offset="1.00"/>
+                    </RadialGradientBrush>
+                </Border.OpacityMask>
+            </Border>
+
+            <!-- Editor Viewport Canvas with Virtual Camera Transform -->
+            <Canvas x:Name="LiveCodeViewportCanvas" ClipToBounds="True">
+                <Canvas x:Name="LiveCodeEditorCanvas" ClipToBounds="False">
+                    <Canvas.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="LiveCodeCameraScale" ScaleX="1.0" ScaleY="1.0" CenterX="0" CenterY="0"/>
+                            <TranslateTransform x:Name="LiveCodeCameraTranslate" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Canvas.RenderTransform>
+
+                    <!-- Active Line Highlight Strip & Vertical Accent Bar -->
+                    <Canvas x:Name="LiveCodeHighlightsCanvas" ClipToBounds="False"/>
+
+                    <!-- Code Lines Canvas (Absolute Virtual Coordinates) -->
+                    <Canvas x:Name="LiveCodeLinesCanvas" ClipToBounds="False"/>
+
+                    <!-- Micro-doodle overlay layer -->
+                    <Canvas x:Name="LiveCodeDoodleCanvas" ClipToBounds="False"/>
+
+                    <!-- Multiplayer Live-Share Caret & Artist Tag -->
+                    <Canvas x:Name="LiveCodeCaretCanvas" ClipToBounds="False">
+                        <Rectangle x:Name="LiveCodeCaretBlock" Width="3.5" Height="40" Fill="#FBBF24"/>
+                        <Border x:Name="LiveCodeArtistPill" CornerRadius="4" Padding="7,3" Background="#FF4D6D">
+                            <TextBlock x:Name="LiveCodeArtistText" Text="artist" FontSize="12" FontWeight="Bold"
+                                       FontFamily="JetBrains Mono, Cascadia Mono, Consolas, monospace" Foreground="#FFFFFF"/>
+                        </Border>
+                    </Canvas>
+                </Canvas>
+            </Canvas>
+
+            <!-- Overlay IDE UI Pills (CodeLens Blame & Find overlay) -->
+            <Border x:Name="LiveCodeFindPill" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,32,40,0"
+                    CornerRadius="8" Background="#D0111420" BorderBrush="#30FFFFFF" BorderThickness="1"
+                    Padding="14,6" Opacity="0">
+                <TextBlock x:Name="LiveCodeFindText" Text="Find: Track Title   0 lines" FontSize="11"
+                           FontFamily="JetBrains Mono, Cascadia Mono, Consolas, monospace" Foreground="#94A3B8"/>
+            </Border>
+        </Grid>
 
         <!-- Fullscreen Intro Title + Artist Hero Card (stacked poster aesthetic) -->
         <Grid x:Name="IntroHeroCard" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="5"
@@ -563,7 +677,7 @@
                     <Grid>
                         <Path Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                               Fill="#64748B" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <Image x:Name="KineticCornerImage" Stretch="UniformToFill">
+                        <Image x:Name="KineticCornerImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality">
                             <Image.Clip>
                                 <RectangleGeometry RadiusX="10" RadiusY="10" Rect="0,0,44,44"/>
                             </Image.Clip>
@@ -608,7 +722,9 @@
                         Margin="0,0,8,0" Click="OnToggleLayoutModeClicked" ToolTip="Toggle Split | Kinetic (Beta) Mode (K)"/>
                 <StackPanel x:Name="KineticControlsPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,8,0">
                     <Button x:Name="BtnToggleKineticPreset" Content="Style: Editorial" Style="{StaticResource PillBarButton}"
-                            Margin="0,0,8,0" Click="OnToggleKineticPresetClicked" ToolTip="Toggle Kinetic Style (Editorial | Poster)"/>
+                            Margin="0,0,8,0" Click="OnToggleKineticPresetClicked" ToolTip="Toggle Kinetic Style (Editorial | Poster | SpotlightFog | LiveCode)"/>
+                    <Button x:Name="BtnToggleSpotlightBackdrop" Content="Backdrop: HD Art" Style="{StaticResource PillBarButton}"
+                            Margin="0,0,8,0" Click="OnToggleSpotlightBackdropClicked" ToolTip="Toggle Spotlight Backdrop (HD Cover | Fluid Color)"/>
                     <Button x:Name="BtnTogglePosterDim" Content="Tone: Dim" Style="{StaticResource PillBarButton}"
                             Margin="0,0,8,0" Click="OnTogglePosterDimClicked" ToolTip="Toggle Poster Night-Safe Dim Mode (Dim | Vivid)"/>
                     <Button x:Name="BtnToggleVibe" Content="Vibe: Auto" Style="{StaticResource PillBarButton}"

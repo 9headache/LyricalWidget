@@ -103,6 +103,8 @@ public partial class FullscreenVibeWindow : Window
 
     private void RebuildLyricsViews()
     {
+        _spotlightFogRenderer.UpdateLyrics(_currentLyrics);
+        _liveCodeRenderer.UpdateLyrics(_currentLyrics);
         LyricsCanvas.Children.Clear();
         PortraitLyricsCanvas.Children.Clear();
         _vibeVisuals.Clear();

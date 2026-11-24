@@ -1,0 +1,721 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
+using LyricalWidget.Lyrics;
+using LyricalWidget.Media;
+
+namespace LyricalWidget.Rendering;
+
+/// <summary>
+/// Renders the SpotlightFog fullscreen kinetic typography preset:
+/// continuous vertical conveyor belt lyrics with velocity smear over a dual-mode
+/// (swirling album fluid or razor-sharp 1200x1200 artwork) frosted fog backdrop.
+/// </summary>
+public sealed class KineticSpotlightFogRenderer
+{
+    private const int PoolSize = 5;
+
+    private static readonly FontFamily MultiScriptFont = new("Segoe UI Variable Display, Bahnschrift, Arial Black, Nirmala UI, Yu Gothic UI, Malgun Gothic, Segoe UI, sans-serif");
+    private static readonly Typeface MultiScriptTypeface = new(MultiScriptFont, FontStyles.Normal, FontWeights.Black, FontStretches.Normal);
+
+    private readonly SpringDamper _conveyorSpring = new(3.0, 0.76);
+    private readonly SpringDamper _opacitySpring = new(2.2, 0.85);
+
+    private Grid? _artworkGroup;
+    private Image? _sharpImage;
+    private ScaleTransform? _sharpScale;
+    private Image? _blurredImage;
+    private ScaleTransform? _blurredScale;
+    private RadialGradientBrush? _fogMask;
+    private Canvas? _lyricsCanvas;
+
+    private readonly Grid[] _slotContainers = new Grid[PoolSize];
+    private readonly TextBlock[] _slotTextBlocks = new TextBlock[PoolSize];
+    private readonly ScaleTransform[] _slotScales = new ScaleTransform[PoolSize];
+    private readonly TranslateTransform[] _slotTranslates = new TranslateTransform[PoolSize];
+    private readonly DropShadowEffect[] _slotShadows = new DropShadowEffect[PoolSize];
+    private readonly BlurEffect[] _slotBlurs = new BlurEffect[PoolSize];
+
+    private readonly List<TimedWord> _allWords = new();
+    private BitmapSource? _cachedSharpArt;
+    private BitmapSource? _cachedBlurredArt;
+
+    private Color _boostedAccentColor = Color.FromRgb(0x38, 0xBD, 0xF8);
+    private Color _mutedAccentColor = Color.FromArgb(170, 0x38, 0xBD, 0xF8);
+
+    private string _backdropMode = "HdArtwork";
+    private double _artworkGroupOpacity = 1.0;
+
+    private double _scrollPos = 0.0;
+    private double _scrollVel = 0.0;
+    private double _masterOpacityPos = 0.0;
+    private double _masterOpacityVel = 0.0;
+    private double _lastPositionMs = 0.0;
+    private int _lastActiveIndex = -1;
+
+    private double _viewportWidth = 1920.0;
+    private double _viewportHeight = 1080.0;
+
+    public void Initialize(
+        Grid artworkGroup,
+        Image sharpImage,
+        ScaleTransform sharpScale,
+        Image blurredImage,
+        ScaleTransform blurredScale,
+        RadialGradientBrush fogMask,
+        Canvas lyricsCanvas)
+    {
+        _artworkGroup = artworkGroup;
+        _sharpImage = sharpImage;
+        _sharpScale = sharpScale;
+        _blurredImage = blurredImage;
+        _blurredScale = blurredScale;
+        _fogMask = fogMask;
+        _lyricsCanvas = lyricsCanvas;
+
+        RenderOptions.SetBitmapScalingMode(_sharpImage, BitmapScalingMode.HighQuality);
+        RenderOptions.SetBitmapScalingMode(_blurredImage, BitmapScalingMode.HighQuality);
+
+        _lyricsCanvas.Children.Clear();
+
+        for (int i = 0; i < PoolSize; i++)
+        {
+            var container = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                IsHitTestVisible = false,
+                Opacity = 0.0
+            };
+
+            var scale = new ScaleTransform(1.0, 1.0);
+            var translate = new TranslateTransform(0, 0);
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(translate);
+            container.RenderTransform = group;
+
+            var shadow = new DropShadowEffect
+            {
+                BlurRadius = 28,
+                Direction = 270,
+                ShadowDepth = 3,
+                Color = Colors.Black,
+                Opacity = 0.85
+            };
+            container.Effect = shadow;
+
+            var blur = new BlurEffect
+            {
+                Radius = 0.0,
+                RenderingBias = RenderingBias.Performance
+            };
+
+            var textBlock = new TextBlock
+            {
+                FontFamily = MultiScriptFont,
+                FontWeight = FontWeights.Black,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Effect = blur
+            };
+
+            container.Children.Add(textBlock);
+
+            _slotContainers[i] = container;
+            _slotScales[i] = scale;
+            _slotTranslates[i] = translate;
+            _slotShadows[i] = shadow;
+            _slotBlurs[i] = blur;
+            _slotTextBlocks[i] = textBlock;
+
+            _lyricsCanvas.Children.Add(container);
+        }
+
+        OnResize(_viewportWidth, _viewportHeight);
+    }
+
+    public void SetBackdropMode(string mode)
+    {
+        _backdropMode = mode;
+    }
+
+    public void OnResize(double width, double height)
+    {
+        if (width <= 0 || height <= 0) return;
+        _viewportWidth = width;
+        _viewportHeight = height;
+
+        double containerW = width * 0.85;
+        double containerH = height * 0.26;
+        double left = (width - containerW) * 0.5;
+        double top = (height - containerH) * 0.5;
+
+        for (int i = 0; i < PoolSize; i++)
+        {
+            if (_slotContainers[i] != null)
+            {
+                _slotContainers[i].Width = containerW;
+                _slotContainers[i].Height = containerH;
+                Canvas.SetLeft(_slotContainers[i], left);
+                Canvas.SetTop(_slotContainers[i], top);
+            }
+        }
+    }
+
+    public void UpdateLyrics(LrcDocument? lyrics)
+    {
+        _allWords.Clear();
+        _lastActiveIndex = -1;
+        _scrollPos = 0.0;
+        _scrollVel = 0.0;
+
+        if (lyrics == null || lyrics.Lines == null || lyrics.Lines.Count == 0)
+        {
+            return;
+        }
+
+        for (int lineIdx = 0; lineIdx < lyrics.Lines.Count; lineIdx++)
+        {
+            var line = lyrics.Lines[lineIdx];
+            TimeSpan lineDur = line.Duration > TimeSpan.Zero ? line.Duration : TimeSpan.FromSeconds(4.0);
+
+            if (line.HasWordSync && line.Words != null && line.Words.Count > 0)
+            {
+                foreach (var w in line.Words)
+                {
+                    if (string.IsNullOrWhiteSpace(w.Text)) continue;
+                    _allWords.Add(new TimedWord
+                    {
+                        Text = w.Text.Trim(),
+                        Start = w.Timestamp,
+                        End = w.Timestamp + (w.Duration > TimeSpan.Zero ? w.Duration : TimeSpan.FromMilliseconds(300)),
+                        LineIndex = lineIdx
+                    });
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(line.Text))
+            {
+                var splits = line.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (splits.Length > 0)
+                {
+                    int totalChars = 0;
+                    foreach (var s in splits) totalChars += Math.Max(1, s.Length);
+
+                    double lineStartMs = line.Timestamp.TotalMilliseconds;
+                    double totalMs = Math.Max(400.0, lineDur.TotalMilliseconds);
+                    double curMs = lineStartMs;
+
+                    for (int i = 0; i < splits.Length; i++)
+                    {
+                        double wDur = (Math.Max(1, splits[i].Length) / (double)totalChars) * totalMs;
+                        _allWords.Add(new TimedWord
+                        {
+                            Text = splits[i],
+                            Start = TimeSpan.FromMilliseconds(curMs),
+                            End = TimeSpan.FromMilliseconds(curMs + wDur),
+                            LineIndex = lineIdx
+                        });
+                        curMs += wDur;
+                    }
+                }
+            }
+        }
+    }
+
+    public void UpdateAlbumArt(BitmapSource? sharpArt, VibePalette palette)
+    {
+        if (sharpArt != null)
+        {
+            _cachedSharpArt = sharpArt;
+            _cachedBlurredArt = CreatePreblurredBitmap(sharpArt);
+
+            if (_sharpImage != null) _sharpImage.Source = _cachedSharpArt;
+            if (_blurredImage != null) _blurredImage.Source = _cachedBlurredArt;
+        }
+
+        UpdatePalette(palette);
+    }
+
+    public void UpdateHdAlbumArt(BitmapSource hdArt)
+    {
+        _cachedSharpArt = hdArt;
+        _cachedBlurredArt = CreatePreblurredBitmap(hdArt);
+
+        if (_sharpImage != null) _sharpImage.Source = _cachedSharpArt;
+        if (_blurredImage != null) _blurredImage.Source = _cachedBlurredArt;
+    }
+
+    public void UpdatePalette(VibePalette palette)
+    {
+        Color candidate = palette.Accent;
+        if (candidate.A == 0 || (candidate.R == 0 && candidate.G == 0 && candidate.B == 0))
+        {
+            candidate = palette.Highlight.A > 0 ? palette.Highlight : palette.Primary;
+        }
+
+        _boostedAccentColor = BoostLuminanceFloor(candidate, 0.68);
+        _mutedAccentColor = Color.FromArgb(170, (byte)(_boostedAccentColor.R * 0.75), (byte)(_boostedAccentColor.G * 0.75), (byte)(_boostedAccentColor.B * 0.75));
+    }
+
+    public void Deactivate()
+    {
+        for (int i = 0; i < PoolSize; i++)
+        {
+            if (_slotContainers[i] != null) _slotContainers[i].Opacity = 0.0;
+            if (_slotBlurs[i] != null) _slotBlurs[i].Radius = 0.0;
+            if (_slotTextBlocks[i] != null) _slotTextBlocks[i].Text = string.Empty;
+        }
+
+        _lastActiveIndex = -1;
+        _lastPositionMs = 0.0;
+        _scrollPos = 0.0;
+        _scrollVel = 0.0;
+        _masterOpacityPos = 0.0;
+        _masterOpacityVel = 0.0;
+    }
+
+    public void Activate(double width, double height)
+    {
+        if (width > 0 && height > 0)
+        {
+            _viewportWidth = width;
+            _viewportHeight = height;
+        }
+
+        OnResize(_viewportWidth, _viewportHeight);
+        Reset();
+    }
+
+    public void Reset()
+    {
+        _lastActiveIndex = -1;
+        _lastPositionMs = 0.0;
+        _scrollPos = 0.0;
+        _scrollVel = 0.0;
+        _masterOpacityPos = 0.0;
+        _masterOpacityVel = 0.0;
+
+        for (int i = 0; i < PoolSize; i++)
+        {
+            if (_slotContainers[i] != null) _slotContainers[i].Opacity = 0.0;
+            if (_slotBlurs[i] != null) _slotBlurs[i].Radius = 0.0;
+            if (_slotTextBlocks[i] != null) _slotTextBlocks[i].Text = string.Empty;
+        }
+    }
+
+    public void UpdateFrame(
+        double dt,
+        TimeSpan effectivePos,
+        double currentTimeSec,
+        double bassEnergy,
+        double beatImpulse,
+        bool isPlaying,
+        bool isInstrumental)
+    {
+        if (dt <= 0.0) return;
+
+        // 1. Slow, subtle breathing on sharp & pre-blurred album cover
+        double breathe = 1.02 + (0.02 * Math.Sin(currentTimeSec * 0.35));
+        if (_sharpScale != null)
+        {
+            _sharpScale.ScaleX = breathe;
+            _sharpScale.ScaleY = breathe;
+        }
+        if (_blurredScale != null)
+        {
+            _blurredScale.ScaleX = breathe;
+            _blurredScale.ScaleY = breathe;
+        }
+
+        // 2. Animated multi-stop organic frosted fog mask
+        if (_fogMask != null)
+        {
+            double fogTime = currentTimeSec * 0.22;
+            double cx = 0.50 + (0.08 * Math.Sin(fogTime));
+            double cy = 0.50 + (0.06 * Math.Cos(fogTime * 0.82));
+            double ox = 0.50 + (0.10 * Math.Cos(fogTime * 0.65));
+            double oy = 0.50 + (0.07 * Math.Sin(fogTime * 1.15));
+
+            double rx = 0.48 + (0.05 * Math.Sin(fogTime * 0.50)) + (bassEnergy * 0.03);
+            double ry = 0.46 + (0.05 * Math.Cos(fogTime * 0.60)) + (bassEnergy * 0.03);
+
+            _fogMask.Center = new Point(cx, cy);
+            _fogMask.GradientOrigin = new Point(ox, oy);
+            _fogMask.RadiusX = rx;
+            _fogMask.RadiusY = ry;
+        }
+
+        // 3. Smooth crossfade for HdArtwork vs FluidColor backdrops
+        if (_artworkGroup != null)
+        {
+            bool showArtwork = string.Equals(_backdropMode, "HdArtwork", StringComparison.OrdinalIgnoreCase) && _cachedSharpArt != null;
+            double targetArtOpacity = showArtwork ? 1.0 : 0.0;
+            double artLerp = Math.Clamp(dt / 0.35, 0.0, 1.0);
+            _artworkGroupOpacity += (targetArtOpacity - _artworkGroupOpacity) * artLerp;
+            _artworkGroup.Opacity = _artworkGroupOpacity;
+        }
+
+        // 4. Seek jump detection
+        double curPosMs = effectivePos.TotalMilliseconds;
+        bool isSeek = _lastPositionMs > 0 && Math.Abs(curPosMs - _lastPositionMs) > 300.0;
+        _lastPositionMs = curPosMs;
+
+        int activeWordIdx = FindActiveWordIndex(effectivePos);
+
+        if (isSeek && activeWordIdx >= 0)
+        {
+            _scrollPos = activeWordIdx;
+            _scrollVel = 0.0;
+            _lastActiveIndex = activeWordIdx;
+        }
+        else if (activeWordIdx >= 0)
+        {
+            _lastActiveIndex = activeWordIdx;
+            _conveyorSpring.Step(ref _scrollPos, ref _scrollVel, activeWordIdx, dt);
+        }
+        else if (_lastActiveIndex >= 0)
+        {
+            _conveyorSpring.Step(ref _scrollPos, ref _scrollVel, _lastActiveIndex, dt);
+        }
+
+        // 5. Master conveyor opacity (smooth fade during instrumental/paused)
+        bool hasActiveContent = isPlaying && !isInstrumental && activeWordIdx >= 0 && _allWords.Count > 0;
+        double targetMasterOpacity = hasActiveContent ? 1.0 : 0.0;
+        _opacitySpring.Step(ref _masterOpacityPos, ref _masterOpacityVel, targetMasterOpacity, dt);
+
+        if (_masterOpacityPos < 0.005 && targetMasterOpacity == 0.0)
+        {
+            for (int i = 0; i < PoolSize; i++) _slotContainers[i].Opacity = 0.0;
+            return;
+        }
+
+        // 6. Velocity smear and vertical stretch calculation
+        double scrollSpeed = Math.Abs(_scrollVel);
+        double stretchY = 1.0 + Math.Clamp(scrollSpeed * 0.035, 0.0, 0.12);
+        double smearBlurRadius = Math.Clamp(scrollSpeed * 3.0, 0.0, 10.0);
+        if (scrollSpeed < 0.06) smearBlurRadius = 0.0;
+
+        // 7. Dynamic viewport-proportional hero font size
+        int centerIdx = (int)Math.Round(_scrollPos);
+        double baseHeroFontSize = Math.Clamp(_viewportHeight * 0.12, 68.0, 150.0);
+        double maxAllowedWidth = _viewportWidth * 0.78;
+
+        string activeHeroText = (centerIdx >= 0 && centerIdx < _allWords.Count) ? _allWords[centerIdx].Text : string.Empty;
+        double measuredHeroWidth = MeasureWordWidth(activeHeroText, MultiScriptTypeface, baseHeroFontSize);
+
+        double heroFontSize = baseHeroFontSize;
+        if (measuredHeroWidth > maxAllowedWidth && measuredHeroWidth > 1.0)
+        {
+            heroFontSize = Math.Max(38.0, baseHeroFontSize * (maxAllowedWidth / measuredHeroWidth));
+        }
+
+        // 8. Update each of the 5 pooled word visual slots along the conveyor
+        double stepY = _viewportHeight * 0.17;
+
+        for (int i = 0; i < PoolSize; i++)
+        {
+            int relative = i - 2; // -2, -1, 0, 1, 2
+            int wordIdx = centerIdx + relative;
+
+            if (wordIdx >= 0 && wordIdx < _allWords.Count)
+            {
+                var word = _allWords[wordIdx];
+                double delta = wordIdx - _scrollPos;
+                double absDelta = Math.Abs(delta);
+
+                if (_slotTextBlocks[i].Text != word.Text)
+                {
+                    _slotTextBlocks[i].Text = word.Text;
+                }
+                _slotTextBlocks[i].FontSize = heroFontSize;
+
+                // Vertical conveyor position: delta * (height * 0.17)
+                double posY = delta * stepY;
+
+                // Subtle diagonal offset: gently glides inward to dead-center (X=0)
+                double lineDir = (word.LineIndex % 2 == 0) ? 1.0 : -1.0;
+                double leanSign = delta >= 0.0 ? lineDir : -lineDir;
+                double posX = leanSign * (_viewportWidth * 0.09) * Math.Min(1.0, absDelta);
+
+                _slotTranslates[i].X = posX;
+                _slotTranslates[i].Y = posY;
+
+                // Scale: smooth bell curve peaking at delta=0 (1.0 -> 0.42 -> 0.25)
+                double scale;
+                if (absDelta <= 1.0)
+                {
+                    double cos = Math.Cos(absDelta * Math.PI * 0.5);
+                    scale = 0.42 + (0.58 * cos * cos);
+                }
+                else
+                {
+                    double t = Math.Clamp((absDelta - 1.0) / 1.0, 0.0, 1.0);
+                    scale = Math.Max(0.20, 0.42 - (0.17 * t));
+                }
+
+                _slotScales[i].ScaleX = scale;
+                _slotScales[i].ScaleY = scale * stretchY;
+
+                // Opacity curve: 1.0 at center, ~0.88 upcoming (+1), ~0.52 past (-1), fading to 0 by 1.85
+                double opacity;
+                if (delta >= 0.0)
+                {
+                    if (delta <= 1.0)
+                        opacity = 1.0 - (0.12 * delta);
+                    else
+                        opacity = 0.88 * Math.Clamp((1.85 - delta) / 0.85, 0.0, 1.0);
+                }
+                else
+                {
+                    double neg = -delta;
+                    if (neg <= 1.0)
+                        opacity = 1.0 - (0.48 * neg);
+                    else
+                        opacity = 0.52 * Math.Clamp((1.85 - neg) / 0.85, 0.0, 1.0);
+                }
+
+                _slotContainers[i].Opacity = _masterOpacityPos * opacity;
+
+                // Color crossfade: White (upcoming) -> Boosted Accent (active hero) -> Muted Accent (past)
+                Color slotColor;
+                if (delta >= 0.0)
+                {
+                    double t = Math.Clamp(delta, 0.0, 1.0);
+                    slotColor = LerpColor(_boostedAccentColor, Colors.White, t);
+                }
+                else
+                {
+                    double t = Math.Clamp(-delta, 0.0, 1.0);
+                    slotColor = LerpColor(_boostedAccentColor, _mutedAccentColor, t);
+                }
+                _slotTextBlocks[i].Foreground = new SolidColorBrush(slotColor);
+
+                // Smear blur & shadow intensity
+                _slotBlurs[i].Radius = (absDelta < 0.65) ? smearBlurRadius : 0.0;
+                _slotShadows[i].Opacity = 0.85 * Math.Clamp(1.0 - absDelta, 0.0, 1.0);
+            }
+            else
+            {
+                _slotContainers[i].Opacity = 0.0;
+            }
+        }
+    }
+
+    private int FindActiveWordIndex(TimeSpan effectivePos)
+    {
+        if (_allWords.Count == 0) return -1;
+
+        if (effectivePos < _allWords[0].Start)
+        {
+            return -1;
+        }
+
+        if (_lastActiveIndex >= 0 && _lastActiveIndex < _allWords.Count)
+        {
+            var cur = _allWords[_lastActiveIndex];
+            if (cur.Start <= effectivePos && effectivePos < cur.End)
+            {
+                return _lastActiveIndex;
+            }
+
+            if (_lastActiveIndex + 1 < _allWords.Count)
+            {
+                var next = _allWords[_lastActiveIndex + 1];
+                if (next.Start <= effectivePos && effectivePos < next.End)
+                {
+                    return _lastActiveIndex + 1;
+                }
+            }
+        }
+
+        int low = 0;
+        int high = _allWords.Count - 1;
+        int candidate = -1;
+
+        while (low <= high)
+        {
+            int mid = (low + high) / 2;
+            var w = _allWords[mid];
+
+            if (w.Start <= effectivePos && effectivePos < w.End)
+            {
+                return mid;
+            }
+            if (w.Start <= effectivePos)
+            {
+                candidate = mid;
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+
+        if (candidate >= 0 && candidate < _allWords.Count)
+        {
+            var candWord = _allWords[candidate];
+            TimeSpan gap = effectivePos - candWord.End;
+            if (gap >= TimeSpan.Zero && gap < TimeSpan.FromMilliseconds(850))
+            {
+                return candidate;
+            }
+        }
+
+        return -1;
+    }
+
+    private static double MeasureWordWidth(string text, Typeface typeface, double fontSize)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return 0.0;
+        var ft = new FormattedText(
+            text,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            fontSize,
+            Brushes.White,
+            1.0);
+        return ft.Width;
+    }
+
+    private static Color LerpColor(Color from, Color to, double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        byte a = (byte)(from.A + ((to.A - from.A) * t));
+        byte r = (byte)(from.R + ((to.R - from.R) * t));
+        byte g = (byte)(from.G + ((to.G - from.G) * t));
+        byte b = (byte)(from.B + ((to.B - from.B) * t));
+        return Color.FromArgb(a, r, g, b);
+    }
+
+    private static BitmapSource? CreatePreblurredBitmap(BitmapSource? sharpArt, int targetSize = 256)
+    {
+        if (sharpArt == null) return null;
+
+        try
+        {
+            double scaleX = (double)targetSize / Math.Max(1, sharpArt.PixelWidth);
+            double scaleY = (double)targetSize / Math.Max(1, sharpArt.PixelHeight);
+
+            var transformed = new TransformedBitmap(sharpArt, new ScaleTransform(scaleX, scaleY));
+            var converted = new FormatConvertedBitmap(transformed, PixelFormats.Pbgra32, null, 0);
+
+            var img = new Image
+            {
+                Source = converted,
+                Width = targetSize,
+                Height = targetSize,
+                Effect = new BlurEffect
+                {
+                    Radius = 22,
+                    RenderingBias = RenderingBias.Quality,
+                    KernelType = KernelType.Gaussian
+                }
+            };
+
+            img.Measure(new Size(targetSize, targetSize));
+            img.Arrange(new Rect(0, 0, targetSize, targetSize));
+
+            var rtb = new RenderTargetBitmap(targetSize, targetSize, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(img);
+
+            int stride = targetSize * 4;
+            byte[] pixels = new byte[targetSize * stride];
+            rtb.CopyPixels(pixels, stride, 0);
+
+            var frozen = BitmapSource.Create(
+                targetSize,
+                targetSize,
+                96,
+                96,
+                PixelFormats.Pbgra32,
+                null,
+                pixels,
+                stride);
+            frozen.Freeze();
+            return frozen;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static Color BoostLuminanceFloor(Color color, double minLuminance)
+    {
+        double rf = color.R / 255.0;
+        double gf = color.G / 255.0;
+        double bf = color.B / 255.0;
+        double lum = (0.2126 * rf) + (0.7152 * gf) + (0.0722 * bf);
+
+        if (lum >= minLuminance)
+        {
+            return color;
+        }
+
+        double max = Math.Max(rf, Math.Max(gf, bf));
+        double min = Math.Min(rf, Math.Min(gf, bf));
+        double delta = max - min;
+
+        double h = 0.0;
+        if (delta > 0.0001)
+        {
+            if (Math.Abs(max - rf) < 0.0001)
+                h = 60.0 * (((gf - bf) / delta) % 6.0);
+            else if (Math.Abs(max - gf) < 0.0001)
+                h = 60.0 * (((bf - rf) / delta) + 2.0);
+            else
+                h = 60.0 * (((rf - gf) / delta) + 4.0);
+
+            if (h < 0.0) h += 360.0;
+        }
+
+        double s = max > 0.0001 ? delta / max : 0.0;
+        s = Math.Clamp(s, 0.45, 0.85);
+        double v = 0.96;
+
+        double c = v * s;
+        double x = c * (1.0 - Math.Abs((h / 60.0 % 2.0) - 1.0));
+        double m = v - c;
+
+        double r1 = 0, g1 = 0, b1 = 0;
+        if (h < 60) { r1 = c; g1 = x; b1 = 0; }
+        else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+        else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+        else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+        else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+        else { r1 = c; g1 = 0; b1 = x; }
+
+        byte rOut = (byte)Math.Clamp((r1 + m) * 255.0, 0, 255);
+        byte gOut = (byte)Math.Clamp((g1 + m) * 255.0, 0, 255);
+        byte bOut = (byte)Math.Clamp((b1 + m) * 255.0, 0, 255);
+
+        double newLum = (0.2126 * (rOut / 255.0)) + (0.7152 * (gOut / 255.0)) + (0.0722 * (bOut / 255.0));
+        if (newLum < minLuminance)
+        {
+            double blend = (minLuminance - newLum) / Math.Max(0.01, 1.0 - newLum);
+            rOut = (byte)(rOut + ((255 - rOut) * blend));
+            gOut = (byte)(gOut + ((255 - gOut) * blend));
+            bOut = (byte)(bOut + ((255 - bOut) * blend));
+        }
+
+        return Color.FromRgb(rOut, gOut, bOut);
+    }
+
+    private sealed class TimedWord
+    {
+        public string Text { get; init; } = string.Empty;
+        public TimeSpan Start { get; init; }
+        public TimeSpan End { get; init; }
+        public int LineIndex { get; init; }
+    }
+}

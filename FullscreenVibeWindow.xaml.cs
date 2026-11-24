@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using LyricalWidget.Audio;
@@ -21,12 +22,27 @@ using LyricalWidget.Services;
 
 namespace LyricalWidget;
 
+public enum KineticPreset
+{
+    Editorial,
+    Poster,
+    SpotlightFog,
+    LiveCode
+}
+
 public partial class FullscreenVibeWindow : Window
 {
     private readonly SmtcMediaService _mediaService;
     private readonly LyricsWaterfallService _lyricsService;
     private readonly AudioBeatService _audioBeatService;
     private readonly AppSettings _settings;
+    private readonly KineticSpotlightFogRenderer _spotlightFogRenderer = new();
+    private readonly KineticLiveCodeRenderer _liveCodeRenderer = new();
+    private readonly HighResArtworkService _highResArtworkService = new();
+    private CancellationTokenSource? _hdArtFetchCts;
+
+    public HighResArtworkService HighResArtwork => _highResArtworkService;
+    public BitmapSource? CurrentHdArtwork => _highResArtworkService.CurrentHdArtwork;
 
     private int _paletteUpdateId = 0;
     private LrcDocument _currentLyrics = LrcDocument.Empty();
@@ -57,7 +73,8 @@ public partial class FullscreenVibeWindow : Window
     private bool _isInstrumentalMode = false;
     private bool _isKineticMode = false;
     private string _kineticVibe = "Auto";
-    private string _kineticPreset = "Editorial";
+    private KineticPreset _currentKineticPreset = KineticPreset.Editorial;
+    private string _kineticPreset => _currentKineticPreset.ToString();
     private bool _isIntroHeroCardVisible = false;
     private bool _isLyricsFetching = false;
     private double _marqueeSingleItemWidth = 1000.0;
@@ -115,7 +132,14 @@ public partial class FullscreenVibeWindow : Window
         // Keep Split as the safe default mode when opening Fullscreen
         _isKineticMode = false;
         _kineticVibe = _settings.FullscreenKineticVibe ?? "Auto";
-        _kineticPreset = _settings.FullscreenKineticPreset ?? "Editorial";
+        if (Enum.TryParse<KineticPreset>(_settings.FullscreenKineticPreset, true, out var savedPreset))
+        {
+            _currentKineticPreset = savedPreset;
+        }
+        else
+        {
+            _currentKineticPreset = KineticPreset.Editorial;
+        }
 
         InitModeBarTimer();
         InitHoverControls();
@@ -124,6 +148,35 @@ public partial class FullscreenVibeWindow : Window
         UpdateLayoutModeButtonLabel();
         UpdateKineticPresetButtonLabel();
         UpdateVibeButtonLabel();
+
+        _spotlightFogRenderer.Initialize(
+            SpotlightArtworkGroup,
+            SpotlightSharpImage,
+            SpotlightSharpScale,
+            SpotlightBlurredImage,
+            SpotlightBlurredScale,
+            SpotlightFogMask,
+            SpotlightLyricsCanvas);
+        _spotlightFogRenderer.SetBackdropMode(_settings.SpotlightBackdropMode ?? "HdArtwork");
+
+        _liveCodeRenderer.Initialize(
+            LiveCodeArtworkGroup,
+            LiveCodeBackdropImage,
+            LiveCodeBackdropScale,
+            LiveCodeBackdropParallax,
+            LiveCodeViewportCanvas,
+            LiveCodeEditorCanvas,
+            LiveCodeCameraScale,
+            LiveCodeCameraTranslate,
+            LiveCodeHighlightsCanvas,
+            LiveCodeLinesCanvas,
+            LiveCodeCaretCanvas,
+            LiveCodeCaretBlock,
+            LiveCodeArtistPill,
+            LiveCodeArtistText,
+            LiveCodeDoodleCanvas,
+            LiveCodeFindPill,
+            LiveCodeFindText);
 
         BtnToggleThemeLyrics.Content = $"Theme Lyrics: {(_settings.ThemeColoredLyrics ? "ON" : "OFF")}";
         _currentThemedLyricColors = ComputeCurrentLyricColors(_currentPalette, _settings.ThemeColoredLyrics);
@@ -307,6 +360,9 @@ public partial class FullscreenVibeWindow : Window
             KineticCornerImage.Source = track.Thumbnail;
             AlbumFallbackIcon.Visibility = Visibility.Collapsed;
             PortraitAlbumFallbackIcon.Visibility = Visibility.Collapsed;
+            _spotlightFogRenderer.UpdateAlbumArt(track.Thumbnail, _currentPalette);
+            _liveCodeRenderer.UpdateTrack(track);
+            _liveCodeRenderer.UpdateAlbumArt(track.Thumbnail, _currentPalette);
         }
         else
         {
@@ -315,7 +371,33 @@ public partial class FullscreenVibeWindow : Window
             KineticCornerImage.Source = null;
             AlbumFallbackIcon.Visibility = Visibility.Visible;
             PortraitAlbumFallbackIcon.Visibility = Visibility.Visible;
+            _spotlightFogRenderer.UpdateAlbumArt(null, _currentPalette);
+            _liveCodeRenderer.UpdateTrack(track);
+            _liveCodeRenderer.UpdateAlbumArt(null, _currentPalette);
         }
+
+        // Asynchronously fetch 1200x1200 HD artwork via keyless iTunes/Deezer APIs
+        _hdArtFetchCts?.Cancel();
+        _hdArtFetchCts = new CancellationTokenSource();
+        var ct = _hdArtFetchCts.Token;
+        _ = Task.Run(async () =>
+        {
+            var hdArt = await _highResArtworkService.FetchHighResArtworkAsync(track.Artist, track.Title, ct);
+            if (hdArt != null && !ct.IsCancellationRequested)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (!ct.IsCancellationRequested)
+                    {
+                        AlbumCoverImage.Source = hdArt;
+                        PortraitAlbumCoverImage.Source = hdArt;
+                        KineticCornerImage.Source = hdArt;
+                        _spotlightFogRenderer.UpdateHdAlbumArt(hdArt);
+                        _liveCodeRenderer.UpdateHdAlbumArt(hdArt);
+                    }
+                });
+            }
+        }, ct);
     }
 
     private static Path CreateMarqueeTextPath(
@@ -450,6 +532,8 @@ public partial class FullscreenVibeWindow : Window
     public void ApplyPaletteImmediate(VibePalette palette)
     {
         _currentPalette = palette;
+        _spotlightFogRenderer.UpdatePalette(palette);
+        _liveCodeRenderer.UpdatePalette(palette);
         _currentThemedLyricColors = ComputeCurrentLyricColors(palette, _settings.ThemeColoredLyrics);
         ApplyLyricColorsToVisuals(_vibeVisuals, _currentThemedLyricColors, crossfade: false);
         TintedBackground.Background = new SolidColorBrush(palette.DarkAnchor);
@@ -490,6 +574,8 @@ public partial class FullscreenVibeWindow : Window
     private void CrossfadePalette(VibePalette palette)
     {
         _currentPalette = palette;
+        _spotlightFogRenderer.UpdatePalette(palette);
+        _liveCodeRenderer.UpdatePalette(palette);
         var duration = TimeSpan.FromMilliseconds(800);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
@@ -615,6 +701,8 @@ public partial class FullscreenVibeWindow : Window
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        _spotlightFogRenderer.OnResize(ActualWidth, ActualHeight);
+        _liveCodeRenderer.OnResize(ActualWidth, ActualHeight);
         _prebuiltNextPhrase = null;
         _prebuiltNextIndex = -1;
         _prebuiltEpoch = -1;
@@ -920,50 +1008,208 @@ public partial class FullscreenVibeWindow : Window
 
     private void OnToggleKineticPresetClicked(object sender, RoutedEventArgs e)
     {
-        _kineticPreset = _kineticPreset == "Editorial" ? "Poster" : "Editorial";
-        _settings.FullscreenKineticPreset = _kineticPreset;
+        var nextPreset = _currentKineticPreset switch
+        {
+            KineticPreset.Editorial => KineticPreset.Poster,
+            KineticPreset.Poster => KineticPreset.SpotlightFog,
+            KineticPreset.SpotlightFog => KineticPreset.LiveCode,
+            _ => KineticPreset.Editorial
+        };
+
+        SetActiveKineticPreset(nextPreset);
+    }
+
+    public void SetActiveKineticPreset(KineticPreset newPreset)
+    {
+        // 1. Strict Deactivation: Collapse hosts and reset deduplication state
+        KineticStandardHost.Visibility = Visibility.Collapsed;
+        PosterBackdrop.Visibility = Visibility.Collapsed;
+        _currentKineticActiveIndex = -1;
+        _worldPhrases.Clear();
+        KineticWorldCanvas.Children.Clear();
+        _prebuiltNextPhrase = null;
+        _prebuiltNextIndex = -1;
+        _prebuiltEpoch = -1;
+        _layoutDirector.Reset();
+        _cameraController.Reset(new Point(0, 0));
+        _lastKineticClockMs = 0.0;
+        _lastKineticPosition = TimeSpan.Zero;
+
+        SpotlightFogHost.Visibility = Visibility.Collapsed;
+        _spotlightFogRenderer.Deactivate();
+
+        LiveCodeHost.Visibility = Visibility.Collapsed;
+        _liveCodeRenderer.Deactivate();
+
+        _currentKineticPreset = newPreset;
+        _settings.FullscreenKineticPreset = newPreset.ToString();
         SettingsService.Save(_settings);
         UpdateKineticPresetButtonLabel();
 
-        // Immediately update visuals if currently in Kinetic Mode
-        if (_isKineticMode)
+        if (!_isKineticMode)
         {
-            _kineticRenderEpoch++;
-            _prebuiltNextPhrase = null;
-            _prebuiltNextIndex = -1;
-            _prebuiltEpoch = -1;
-            _worldPhrases.Clear();
-            KineticWorldCanvas.Children.Clear();
-            _layoutDirector.Reset();
-            _cameraController.Reset(new Point(ActualWidth > 0 ? ActualWidth * 0.52 : 960, ActualHeight > 0 ? ActualHeight * 0.46 : 500));
-            _currentKineticActiveIndex = -1;
-            _lastKineticClockMs = 0.0;
-
-            if (_kineticPreset == "Poster")
-            {
-                PosterBackdrop.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                PosterBackdrop.Visibility = Visibility.Collapsed;
-            }
+            return;
         }
+
+        // 2. Viewport size from root Window/Grid (never child host's ActualWidth which reports 0 right after Collapsed)
+        double vpW = RootGrid.ActualWidth > 0 ? RootGrid.ActualWidth : (ActualWidth > 0 ? ActualWidth : 1920.0);
+        double vpH = RootGrid.ActualHeight > 0 ? RootGrid.ActualHeight : (ActualHeight > 0 ? ActualHeight : 1080.0);
+        if (vpW <= 0) vpW = 1920.0;
+        if (vpH <= 0) vpH = 1080.0;
+
+        // 3. Activate selected preset with immediate sync
+        switch (newPreset)
+        {
+            case KineticPreset.Editorial:
+            case KineticPreset.Poster:
+                KineticStandardHost.Visibility = Visibility.Visible;
+                KineticStandardHost.Opacity = 1.0;
+                PosterBackdrop.Visibility = (newPreset == KineticPreset.Poster) ? Visibility.Visible : Visibility.Collapsed;
+                KineticViewportCanvas.Visibility = Visibility.Visible;
+                KineticViewportCanvas.Opacity = 1.0;
+                _layoutDirector.Reset();
+                _layoutDirector.IsPosterDimMode = _settings.PosterDimMode;
+                _cameraController.Reset(new Point(vpW * 0.52, vpH * 0.46));
+                _currentKineticActiveIndex = -1;
+                _lastKineticClockMs = 0.0;
+                _lastKineticPosition = TimeSpan.Zero;
+
+                // Zero Blank Screens: immediately build active phrase and snap camera to it
+                if (_currentLyrics.HasSyncedLyrics && _currentLyrics.Lines.Count > 0)
+                {
+                    int totalOffsetMs = _settings.SyncOffsetMs + _currentLyrics.UserOffsetMs;
+                    TimeSpan effectivePos = _mediaService.CurrentPosition + TimeSpan.FromMilliseconds(totalOffsetMs);
+                    if (effectivePos < TimeSpan.Zero) effectivePos = TimeSpan.Zero;
+
+                    int activeIndex = FindCurrentLyricLineIndex(_currentLyrics.Lines, effectivePos);
+                    if (activeIndex >= 0 && activeIndex < _currentLyrics.Lines.Count)
+                    {
+                        _currentKineticActiveIndex = activeIndex;
+                        var line = _currentLyrics.Lines[activeIndex];
+                        var newPhrase = _layoutDirector.CreatePhrase(
+                            line,
+                            activeIndex,
+                            _currentLyrics.Lines,
+                            _currentPalette,
+                            _kineticVibe,
+                            newPreset.ToString(),
+                            _currentBassEnergy,
+                            _currentBeatImpulse,
+                            new Size(vpW, vpH));
+
+                        Canvas.SetLeft(newPhrase.Container, newPhrase.WorldAnchor.X - (newPhrase.VisualSize.Width * 0.5));
+                        Canvas.SetTop(newPhrase.Container, newPhrase.WorldAnchor.Y - (newPhrase.VisualSize.Height * 0.5));
+                        Panel.SetZIndex(newPhrase.Container, 2);
+                        newPhrase.Container.Visibility = Visibility.Visible;
+                        newPhrase.Container.Opacity = 1.0;
+                        newPhrase.IsExiting = false;
+                        newPhrase.CatchUpToTime(effectivePos);
+
+                        KineticWorldCanvas.Children.Add(newPhrase.Container);
+                        _worldPhrases.Add(newPhrase);
+
+                        if (newPhrase.IsPosterMode)
+                        {
+                            PosterBackdrop.Visibility = Visibility.Visible;
+                            PosterBackdrop.Background = new SolidColorBrush(newPhrase.BackdropColor);
+                        }
+
+                        _cameraController.SnapTo(newPhrase.WorldAnchor.X, newPhrase.WorldAnchor.Y, newPhrase.BaseZoom, newPhrase.TargetCameraAngle);
+                        _cameraController.ApplyMatrix(vpW, vpH, WorldCameraMatrix, _timeElapsedSec);
+                    }
+                }
+                break;
+
+            case KineticPreset.SpotlightFog:
+                SpotlightFogHost.Visibility = Visibility.Visible;
+                SpotlightFogHost.Opacity = 1.0;
+                _spotlightFogRenderer.Activate(vpW, vpH);
+                _spotlightFogRenderer.SetBackdropMode(_settings.SpotlightBackdropMode ?? "HdArtwork");
+                _spotlightFogRenderer.UpdateLyrics(_currentLyrics);
+                var track = _mediaService.CurrentTrack;
+                if (track != null && track.Thumbnail != null)
+                {
+                    _spotlightFogRenderer.UpdateAlbumArt(track.Thumbnail, _currentPalette);
+                }
+                if (_highResArtworkService.CurrentHdArtwork != null)
+                {
+                    _spotlightFogRenderer.UpdateHdAlbumArt(_highResArtworkService.CurrentHdArtwork);
+                }
+                _spotlightFogRenderer.Reset();
+                break;
+
+            case KineticPreset.LiveCode:
+                LiveCodeHost.Visibility = Visibility.Visible;
+                LiveCodeHost.Opacity = 1.0;
+                _liveCodeRenderer.Activate(vpW, vpH);
+                var liveTrack = _mediaService.CurrentTrack;
+                _liveCodeRenderer.UpdateTrack(liveTrack);
+                _liveCodeRenderer.UpdatePalette(_currentPalette);
+                _liveCodeRenderer.UpdateLyrics(_currentLyrics);
+                if (_highResArtworkService.CurrentHdArtwork != null)
+                {
+                    _liveCodeRenderer.UpdateHdAlbumArt(_highResArtworkService.CurrentHdArtwork);
+                }
+                else if (liveTrack != null && liveTrack.Thumbnail != null)
+                {
+                    _liveCodeRenderer.UpdateAlbumArt(liveTrack.Thumbnail, _currentPalette);
+                }
+                _liveCodeRenderer.Reset();
+                break;
+        }
+
+        // Forward size sync on Render priority
+        Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
+        {
+            double renderW = RootGrid.ActualWidth > 0 ? RootGrid.ActualWidth : ActualWidth;
+            double renderH = RootGrid.ActualHeight > 0 ? RootGrid.ActualHeight : ActualHeight;
+            if (renderW > 0 && renderH > 0)
+            {
+                ForwardSizeToActivePreset(renderW, renderH);
+            }
+        }));
+    }
+
+    private void ForwardSizeToActivePreset(double width, double height)
+    {
+        if (width <= 0 || height <= 0) return;
+        _spotlightFogRenderer.OnResize(width, height);
+        _liveCodeRenderer.OnResize(width, height);
     }
 
     private void UpdateKineticPresetButtonLabel()
     {
         if (BtnToggleKineticPreset != null)
         {
-            BtnToggleKineticPreset.Content = $"Style: {_kineticPreset}";
+            BtnToggleKineticPreset.Content = $"Style: {_currentKineticPreset}";
         }
         UpdatePosterDimButtonUi();
+        UpdateSpotlightBackdropButtonUi();
+    }
+
+    private void UpdateSpotlightBackdropButtonUi()
+    {
+        if (BtnToggleSpotlightBackdrop != null)
+        {
+            bool isSpotlight = _currentKineticPreset == KineticPreset.SpotlightFog;
+            BtnToggleSpotlightBackdrop.Visibility = (_isKineticMode && isSpotlight) ? Visibility.Visible : Visibility.Collapsed;
+            BtnToggleSpotlightBackdrop.Content = _settings.SpotlightBackdropMode == "FluidColor" ? "Backdrop: Fluid" : "Backdrop: HD Art";
+        }
+    }
+
+    private void OnToggleSpotlightBackdropClicked(object sender, RoutedEventArgs e)
+    {
+        _settings.SpotlightBackdropMode = _settings.SpotlightBackdropMode == "HdArtwork" ? "FluidColor" : "HdArtwork";
+        SettingsService.Save(_settings);
+        _spotlightFogRenderer.SetBackdropMode(_settings.SpotlightBackdropMode);
+        UpdateSpotlightBackdropButtonUi();
     }
 
     private void UpdatePosterDimButtonUi()
     {
         if (BtnTogglePosterDim != null)
         {
-            bool isPoster = string.Equals(_kineticPreset, "Poster", StringComparison.OrdinalIgnoreCase);
+            bool isPoster = _currentKineticPreset == KineticPreset.Poster;
             BtnTogglePosterDim.Visibility = (_isKineticMode && isPoster) ? Visibility.Visible : Visibility.Collapsed;
             BtnTogglePosterDim.Content = _settings.PosterDimMode ? "Tone: Dim" : "Tone: Vivid";
         }
@@ -995,9 +1241,7 @@ public partial class FullscreenVibeWindow : Window
 
         UpdateLayoutModeButtonLabel();
         UpdatePosterDimButtonUi();
-
-        var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
-        var dur = TimeSpan.FromMilliseconds(260);
+        UpdateSpotlightBackdropButtonUi();
 
         if (isKinetic)
         {
@@ -1005,19 +1249,9 @@ public partial class FullscreenVibeWindow : Window
             VignetteEdgeStop.Color = (Color)ColorConverter.ConvertFromString("#9504060A");
             BottomMarqueeCanvas.Visibility = Visibility.Visible;
 
-            if (_kineticPreset == "Poster")
-            {
-                PosterBackdrop.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                PosterBackdrop.Visibility = Visibility.Collapsed;
-            }
-
             if (!_currentLyrics.HasSyncedLyrics)
             {
                 // No-Lyrics / Instrumental Guard in Kinetic Mode:
-                // Gracefully show centered Album Art + Title card instead of an empty screen
                 LandscapeLayout.Visibility = Visibility.Visible;
                 PortraitLayout.Visibility = Visibility.Collapsed;
                 LyricsSideContainer.Visibility = Visibility.Collapsed;
@@ -1028,108 +1262,41 @@ public partial class FullscreenVibeWindow : Window
                 TrackTitleText.TextAlignment = TextAlignment.Center;
                 TrackArtistText.TextAlignment = TextAlignment.Center;
 
-                KineticViewportCanvas.Visibility = Visibility.Collapsed;
-                KineticViewportCanvas.Opacity = 0.0;
+                KineticStandardHost.Visibility = Visibility.Collapsed;
+                SpotlightFogHost.Visibility = Visibility.Collapsed;
+                LiveCodeHost.Visibility = Visibility.Collapsed;
                 KineticCornerBadge.Visibility = Visibility.Collapsed;
-                KineticCornerBadge.Opacity = 0.0;
             }
             else
             {
                 // Synced lyrics active: animated typography owns 100% of the screen
                 LandscapeLayout.Visibility = Visibility.Collapsed;
                 PortraitLayout.Visibility = Visibility.Collapsed;
-
-                KineticViewportCanvas.Visibility = Visibility.Visible;
-                KineticViewportCanvas.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, dur) { EasingFunction = ease });
-
                 KineticCornerBadge.Visibility = Visibility.Visible;
-                KineticCornerBadge.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, dur) { EasingFunction = ease });
-            }
+                KineticCornerBadge.Opacity = 1.0;
 
-            _kineticRenderEpoch++;
-            _prebuiltNextPhrase = null;
-            _prebuiltNextIndex = -1;
-            _prebuiltEpoch = -1;
-            _worldPhrases.Clear();
-            KineticWorldCanvas.Children.Clear();
-            _layoutDirector.Reset();
-            _cameraController.Reset(new Point(0, 0));
-            _currentKineticActiveIndex = -1;
-            _lastKineticPosition = TimeSpan.Zero;
-            _lastKineticClockMs = 0.0;
-
-            // Zero Blank Screens on Toggle: immediately build active phrase and snap camera to it
-            if (_currentLyrics.HasSyncedLyrics && _currentLyrics.Lines.Count > 0)
-            {
-                int totalOffsetMs = _settings.SyncOffsetMs + _currentLyrics.UserOffsetMs;
-                TimeSpan effectivePos = _mediaService.CurrentPosition + TimeSpan.FromMilliseconds(totalOffsetMs);
-                if (effectivePos < TimeSpan.Zero) effectivePos = TimeSpan.Zero;
-
-                int activeIndex = FindCurrentLyricLineIndex(_currentLyrics.Lines, effectivePos);
-                if (activeIndex >= 0 && activeIndex < _currentLyrics.Lines.Count)
-                {
-                    _currentKineticActiveIndex = activeIndex;
-                    var line = _currentLyrics.Lines[activeIndex];
-                    double vpW = ActualWidth > 0 ? ActualWidth : 1920;
-                    double vpH = ActualHeight > 0 ? ActualHeight : 1080;
-                    var newPhrase = _layoutDirector.CreatePhrase(
-                        line,
-                        activeIndex,
-                        _currentLyrics.Lines,
-                        _currentPalette,
-                        _kineticVibe,
-                        _kineticPreset,
-                        _currentBassEnergy,
-                        _currentBeatImpulse,
-                        new Size(vpW, vpH));
-
-                    Canvas.SetLeft(newPhrase.Container, newPhrase.WorldAnchor.X - (newPhrase.VisualSize.Width * 0.5));
-                    Canvas.SetTop(newPhrase.Container, newPhrase.WorldAnchor.Y - (newPhrase.VisualSize.Height * 0.5));
-                    Panel.SetZIndex(newPhrase.Container, 2);
-                    newPhrase.Container.Visibility = Visibility.Visible;
-                    newPhrase.Container.Opacity = 1.0;
-                    newPhrase.IsExiting = false;
-
-                    // Instantly catch up words already passed
-                    newPhrase.CatchUpToTime(effectivePos);
-
-                    KineticWorldCanvas.Children.Add(newPhrase.Container);
-                    _worldPhrases.Add(newPhrase);
-
-                    if (newPhrase.IsPosterMode)
-                    {
-                        PosterBackdrop.Visibility = Visibility.Visible;
-                        PosterBackdrop.Background = new SolidColorBrush(newPhrase.BackdropColor);
-                    }
-
-                    _cameraController.SnapTo(newPhrase.WorldAnchor.X, newPhrase.WorldAnchor.Y, newPhrase.BaseZoom, newPhrase.TargetCameraAngle);
-                    _cameraController.ApplyMatrix(vpW, vpH, WorldCameraMatrix, _timeElapsedSec);
-                }
+                SetActiveKineticPreset(_currentKineticPreset);
             }
         }
         else
         {
-            PosterBackdrop.Visibility = Visibility.Collapsed;
             KineticControlsPanel.Visibility = Visibility.Collapsed;
             VignetteEdgeStop.Color = (Color)ColorConverter.ConvertFromString("#7504060A");
             BottomMarqueeCanvas.Visibility = Visibility.Collapsed;
 
-            KineticViewportCanvas.Visibility = Visibility.Collapsed;
-            KineticViewportCanvas.Opacity = 0.0;
+            KineticStandardHost.Visibility = Visibility.Collapsed;
+            SpotlightFogHost.Visibility = Visibility.Collapsed;
+            LiveCodeHost.Visibility = Visibility.Collapsed;
             KineticCornerBadge.Visibility = Visibility.Collapsed;
-            KineticCornerBadge.Opacity = 0.0;
 
-            _kineticRenderEpoch++;
-            _prebuiltNextPhrase = null;
-            _prebuiltNextIndex = -1;
-            _prebuiltEpoch = -1;
+            _spotlightFogRenderer.Deactivate();
+            _liveCodeRenderer.Deactivate();
+
+            _currentKineticActiveIndex = -1;
             _worldPhrases.Clear();
             KineticWorldCanvas.Children.Clear();
             _layoutDirector.Reset();
             _cameraController.Reset(new Point(0, 0));
-            _currentKineticActiveIndex = -1;
-            _lastKineticPosition = TimeSpan.Zero;
-            _lastKineticClockMs = 0.0;
 
             if (_isPortraitMode)
             {

@@ -50,7 +50,8 @@ public class AppSettings
     // Fullscreen Vibe & Kinetic Typography
     public string FullscreenLayoutMode { get; set; } = "Split"; // "Split", "Kinetic"
     public string FullscreenKineticVibe { get; set; } = "Auto"; // "Auto", "Calm", "Rap", "Pop"
-    public string FullscreenKineticPreset { get; set; } = "Editorial"; // "Editorial", "Poster"
+    public string FullscreenKineticPreset { get; set; } = "Editorial"; // "Editorial", "Poster", "SpotlightFog", "LiveCode"
+    public string SpotlightBackdropMode { get; set; } = "HdArtwork"; // "HdArtwork", "FluidColor"
     public bool FullscreenKineticIcons { get; set; } = true; // default ON
     public bool PosterDimMode { get; set; } = true; // Night-safe muted album palette cap (default ON)
 
