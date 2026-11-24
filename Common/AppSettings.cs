@@ -50,10 +50,23 @@ public class AppSettings
     // Fullscreen Vibe & Kinetic Typography
     public string FullscreenLayoutMode { get; set; } = "Split"; // "Split", "Kinetic"
     public string FullscreenKineticVibe { get; set; } = "Auto"; // "Auto", "Calm", "Rap", "Pop"
-    public string FullscreenKineticPreset { get; set; } = "Editorial"; // "Editorial", "Poster", "SpotlightFog", "LiveCode"
+    private string _fullscreenKineticPreset = "Editorial";
+    public string FullscreenKineticPreset
+    {
+        get => _fullscreenKineticPreset;
+        set => _fullscreenKineticPreset = NormalizeKineticPreset(value);
+    } // "Editorial", "Poster", "SpotlightFog", "LiveCode"
     public string SpotlightBackdropMode { get; set; } = "HdArtwork"; // "HdArtwork", "FluidColor"
     public bool FullscreenKineticIcons { get; set; } = true; // default ON
     public bool PosterDimMode { get; set; } = true; // Night-safe muted album palette cap (default ON)
+
+    public static string NormalizeKineticPreset(string? val)
+    {
+        if (string.Equals(val, "Poster", StringComparison.OrdinalIgnoreCase)) return "Poster";
+        if (string.Equals(val, "SpotlightFog", StringComparison.OrdinalIgnoreCase)) return "SpotlightFog";
+        if (string.Equals(val, "LiveCode", StringComparison.OrdinalIgnoreCase)) return "LiveCode";
+        return "Editorial";
+    }
 
     // Backwards-compatible deserialization for older settings.json
     [JsonInclude]
@@ -120,6 +133,7 @@ public static class SettingsService
                     if (settings.FpsCap != 30 && settings.FpsCap != 60) settings.FpsCap = 60;
                     if (settings.FullscreenLayoutMode != "Kinetic") settings.FullscreenLayoutMode = "Split";
                     if (string.IsNullOrWhiteSpace(settings.FullscreenKineticVibe)) settings.FullscreenKineticVibe = "Auto";
+                    settings.FullscreenKineticPreset = AppSettings.NormalizeKineticPreset(settings.FullscreenKineticPreset);
                     return settings;
                 }
             }

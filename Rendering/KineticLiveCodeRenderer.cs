@@ -149,7 +149,7 @@ public sealed class KineticLiveCodeRenderer
         if (_highlightsCanvas == null) return;
         _highlightsCanvas.Children.Clear();
 
-        // 1. Faint vertical indent guide lines
+        // Vertical indent guides
         _indentGuideCol0 = new Rectangle
         {
             Width = 1.0,
@@ -172,7 +172,7 @@ public sealed class KineticLiveCodeRenderer
         Canvas.SetTop(_indentGuideCol4, 0);
         _highlightsCanvas.Children.Add(_indentGuideCol4);
 
-        // 2. Full-width tinted active line highlight band
+        // Active line highlight band
         _activeLineBand = new Border
         {
             Height = 60,
@@ -186,7 +186,7 @@ public sealed class KineticLiveCodeRenderer
         Canvas.SetLeft(_activeLineBand, 0);
         _highlightsCanvas.Children.Add(_activeLineBand);
 
-        // 3. Glowing 3.5px vertical accent bar on active line gutter
+        // Vertical accent bar on gutter
         _activeLineGutterBar = new Rectangle
         {
             Width = 3.5,
@@ -309,8 +309,7 @@ public sealed class KineticLiveCodeRenderer
 
     public void UpdatePalette(VibePalette palette)
     {
-        // Enforce Vibrant Accent Saturation Floor:
-        // Even on dark, muted, or black & white album art, the artist pill and IDE highlights ALWAYS pop!
+        // Keep accent saturated enough to pop against dark backgrounds
         Color candidate = palette.Accent.A > 0 ? palette.Accent : palette.Primary;
         _accentColor = EnsureVibrantAccent(candidate, _currentTrack?.Title ?? _currentTrack?.Artist);
         _functionColor = palette.Highlight.A > 0 ? palette.Highlight : Color.FromRgb(0x38, 0xBD, 0xF8);
@@ -370,16 +369,15 @@ public sealed class KineticLiveCodeRenderer
     {
         if (dt <= 0.0) return;
 
-        // Native High-Res Typography dimensions (Razor-sharp vector glyphs without artificial 1.8x scaling)
         double baseFontSize = Math.Clamp(_viewportHeight * 0.046, 30.0, 56.0);
         double lineHeight = Math.Max(56.0, baseFontSize * 1.85);
         double gutterWidth = Math.Max(76.0, baseFontSize * 1.70);
 
-        // 1. Locate active code line and typing progress
+        // Locate active code line
         int activeLineIdx = FindActiveLineIndex(effectivePos);
         bool hasLyrics = isPlaying && !isInstrumental && activeLineIdx >= 0 && activeLineIdx < _formattedLines.Count;
 
-        // Instrumental gap detection (> 3.2s gap or outro triggers full-file zoom out)
+        // Instrumental gap detection
         bool inInstrumentalGap = false;
         if (activeLineIdx >= 0 && activeLineIdx < _formattedLines.Count)
         {
@@ -413,43 +411,35 @@ public sealed class KineticLiveCodeRenderer
             _lastWhipPanTime = currentTimeSec;
         }
 
-        // 2. Absolute Virtual Canvas Positioning: Caret & Line Coordinates are Strictly Locked!
+        // Virtual canvas line and caret layout
         Point caretPoint;
         UpdateRollingLines(activeLineIdx, effectivePos, dt, baseFontSize, lineHeight, gutterWidth, out caretPoint);
 
-        // 3. Active Line Highlight Strip & Vertical Gutter Accent
+        // Active line highlights
         UpdateActiveLineHighlights(activeLineIdx, lineHeight, gutterWidth);
 
-        // 4. Macro Camera Framing & Deadzone Tracking (Native scale ~1.0x-1.12x for sharp text)
+        // Camera framing and deadzone tracking
         double targetZoom;
         double targetCamX;
         double targetCamY;
 
         if (!inInstrumentalGap && hasLyrics)
         {
-            // Active typing: native scale (1.0x - 1.12x)
             targetZoom = Math.Clamp(_viewportHeight / 980.0, 1.00, 1.12);
 
-            // Deadzone tracking:
-            // Left gutter anchored at ~18% viewport width
             double anchorCamX = _viewportWidth * 0.18;
             double followThresholdX = _viewportWidth * 0.55;
-
-            // Screen X position where caret would sit if camera remained still at anchorCamX
             double caretScreenX = anchorCamX + (caretPoint.X * targetZoom);
 
             if (caretScreenX <= followThresholdX)
             {
-                // Deadzone: camera stays anchored at left margin; cursor glides rightward
                 targetCamX = anchorCamX;
             }
             else
             {
-                // Soft follow zone: smoothly pan right to keep cursor around 55% of screen width
                 targetCamX = followThresholdX - (caretPoint.X * targetZoom);
             }
 
-            // Camera Y target is locked directly to activeLineIdx * lineHeight!
             double activeLineCenterY = (activeLineIdx * lineHeight) + (lineHeight * 0.5);
             targetCamY = (_viewportHeight * 0.52) - (activeLineCenterY * targetZoom);
 
@@ -460,7 +450,7 @@ public sealed class KineticLiveCodeRenderer
         }
         else
         {
-            // Instrumental gap / outro zoom-out (0.62x - 0.72x): reveal accumulated code file & blame
+            // Zoom out during gaps to reveal overview
             targetZoom = Math.Clamp(_viewportHeight / 1500.0, 0.62, 0.72);
             double totalHeight = Math.Max(200.0, _renderedRows.Count * lineHeight);
             int focusLine = activeLineIdx >= 0 ? activeLineIdx : 0;
@@ -489,7 +479,6 @@ public sealed class KineticLiveCodeRenderer
             _cameraZoomSpring.Step(ref _camZoomPos, ref _camZoomVel, targetZoom, dt);
         }
 
-        // Apply camera transforms
         if (_cameraScale != null)
         {
             _cameraScale.ScaleX = _camZoomPos;
@@ -501,7 +490,7 @@ public sealed class KineticLiveCodeRenderer
             _cameraTranslate.Y = _camYPos;
         }
 
-        // Coupled background parallax on oversized backdrop
+        // Background parallax
         if (_backdropScale != null)
         {
             double slowBreathe = 1.0 + (0.015 * Math.Sin(currentTimeSec * 0.30));
@@ -516,7 +505,7 @@ public sealed class KineticLiveCodeRenderer
             _backdropParallax.Y = -_camYPos * 0.28;
         }
 
-        // Line break whip-pan horizontal motion blur burst
+        // Whip-pan motion blur on line breaks
         double whipPanElapsed = currentTimeSec - _lastWhipPanTime;
         if (_editorBlur != null)
         {
@@ -611,8 +600,6 @@ public sealed class KineticLiveCodeRenderer
                 IsHitTestVisible = false
             };
 
-            // Set ABSOLUTE VIRTUAL POSITION in Canvas:
-            // Old lines can be pruned/collapsed without ever shifting this line's Y-coordinate!
             Canvas.SetLeft(rowGrid, 0);
             Canvas.SetTop(rowGrid, i * lineHeight);
 
@@ -634,20 +621,19 @@ public sealed class KineticLiveCodeRenderer
             Grid.SetColumn(numText, 0);
             rowGrid.Children.Add(numText);
 
-            // Container for token highlight chips + code TextBlock
             var textCell = new Grid
             {
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // Layer A: Hero Token Highlight Chips (Tokyo-Night IDE syntax block pills)
+            // Syntax highlight chips
             var chipsCanvas = new Canvas
             {
                 IsHitTestVisible = false
             };
             textCell.Children.Add(chipsCanvas);
 
-            // Layer B: Code tokens TextBlock with ideal rendering mode
+            // Code tokens text
             var codeText = new TextBlock
             {
                 FontFamily = MonospaceFont,
@@ -780,8 +766,7 @@ public sealed class KineticLiveCodeRenderer
                 continue;
             }
 
-            // Keep rolling buffer of visible lines around active line.
-            // In a Canvas, setting Visibility.Collapsed leaves activeLine Y-coordinates 100% UNTOUCHED!
+            // Rolling buffer of visible lines around active line
             int dist = i - activeLineIdx;
             if (dist < -16 || dist > 8)
             {
@@ -792,7 +777,7 @@ public sealed class KineticLiveCodeRenderer
 
             if (i < activeLineIdx)
             {
-                // Past completed line: smoothly dimmed to ~42%
+                // Dim completed lines
                 row.RowGrid.Opacity = 0.42;
                 foreach (var (run, token) in row.Runs)
                 {
@@ -801,7 +786,7 @@ public sealed class KineticLiveCodeRenderer
             }
             else if (i == activeLineIdx)
             {
-                // Active line: 100% opacity with smooth fractional character typing progress
+                // Active line typing progress
                 row.RowGrid.Opacity = 1.0;
                 var line = row.Line;
                 double elapsedMs = (effectivePos - line.Timestamp).TotalMilliseconds;
@@ -811,7 +796,6 @@ public sealed class KineticLiveCodeRenderer
                 int totalChars = 0;
                 foreach (var (_, tok) in row.Runs) totalChars += tok.Text.Length;
 
-                // Smooth continuous typing progress
                 double charProgress = totalChars * progress;
                 int revealChars = (int)Math.Floor(charProgress);
                 double fracChar = charProgress - revealChars;
@@ -841,17 +825,14 @@ public sealed class KineticLiveCodeRenderer
                     runningRevealed += tokLen;
                 }
 
-                // Exact caret position: Width of revealed string + smooth fractional character progress
                 string revealedStr = revealedSb.ToString();
                 double textWidth = MeasureTextWidth(revealedStr, baseFontSize);
 
                 double approxCharWidth = MeasureTextWidth("m", baseFontSize);
                 double targetCaretX = gutterWidth + textWidth + (fracChar * approxCharWidth * 0.45);
 
-                // Spring-damped smooth caret glide
                 _caretXSpring.Step(ref _caretCurrentX, ref _caretCurrentXVel, targetCaretX, dt);
 
-                // Caret Y is LOCKED directly to: i * lineHeight!
                 double caretHeight = baseFontSize * 1.15;
                 double caretY = (i * lineHeight) + ((lineHeight - caretHeight) * 0.5);
                 caretPoint = new Point(_caretCurrentX, caretY + (caretHeight * 0.5));
@@ -876,7 +857,6 @@ public sealed class KineticLiveCodeRenderer
                             _artistText.FontSize = pillFontSize;
                         }
 
-                        // Generous clearance: sits ~26px above caret with zero collision with line above
                         double pillY = caretY - 26.0;
                         double pillX = Math.Max(0.0, _caretCurrentX - 4.0);
                         Canvas.SetLeft(_artistPill, pillX);
@@ -884,12 +864,10 @@ public sealed class KineticLiveCodeRenderer
                     }
                 }
 
-                // Render micro-doodle overlay
                 UpdateLineDoodle(line, row, gutterWidth, baseFontSize, caretY);
             }
             else
             {
-                // Future line: hidden until typed
                 row.RowGrid.Opacity = 0.0;
             }
         }

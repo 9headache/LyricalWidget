@@ -763,7 +763,7 @@ public partial class FullscreenVibeWindow : Window
         CanvasShakeTransform.X = _shakeOffsetX;
         CanvasShakeTransform.Y = _shakeOffsetY;
 
-        // 3. Dynamic Large Orbs (75%-115% viewport scale, Bloom & Swell)
+        // Background fluid orbs
         double winW = Math.Max(800, ActualWidth);
         double winH = Math.Max(600, ActualHeight);
         double cx = winW * 0.5 - 500;
@@ -808,7 +808,7 @@ public partial class FullscreenVibeWindow : Window
         Orb4Scale.ScaleX = s4; Orb4Scale.ScaleY = s4;
         Orb4.Opacity = Math.Clamp(0.58 + bloom, 0.38, 0.82);
 
-        // 4. Bass pulse on Album Cover Aura Glow (Rock-steady: NO SHAKE)
+        // Bass pulse on album cover glow
         double glowBlur = 52.0 + (bass * 26.0);
         double glowOpacity = 0.55 + (bass * 0.35);
         AlbumAuraGlow.BlurRadius = glowBlur;
@@ -816,7 +816,7 @@ public partial class FullscreenVibeWindow : Window
         PortraitAlbumAuraGlow.BlurRadius = glowBlur * 0.7;
         PortraitAlbumAuraGlow.Opacity = glowOpacity;
 
-        // 5. Progress Bar Sync
+        // Progress bar sync
         TimeSpan currentPos = _mediaService.CurrentPosition;
         TimeSpan duration = _mediaService.CurrentTrack.Duration;
         double totalSec = duration.TotalSeconds;
@@ -1013,6 +1013,7 @@ public partial class FullscreenVibeWindow : Window
             KineticPreset.Editorial => KineticPreset.Poster,
             KineticPreset.Poster => KineticPreset.SpotlightFog,
             KineticPreset.SpotlightFog => KineticPreset.LiveCode,
+            KineticPreset.LiveCode => KineticPreset.Editorial,
             _ => KineticPreset.Editorial
         };
 
@@ -1021,7 +1022,6 @@ public partial class FullscreenVibeWindow : Window
 
     public void SetActiveKineticPreset(KineticPreset newPreset)
     {
-        // 1. Strict Deactivation: Collapse hosts and reset deduplication state
         KineticStandardHost.Visibility = Visibility.Collapsed;
         PosterBackdrop.Visibility = Visibility.Collapsed;
         _currentKineticActiveIndex = -1;
@@ -1051,13 +1051,12 @@ public partial class FullscreenVibeWindow : Window
             return;
         }
 
-        // 2. Viewport size from root Window/Grid (never child host's ActualWidth which reports 0 right after Collapsed)
+        // Viewport dimensions from root window
         double vpW = RootGrid.ActualWidth > 0 ? RootGrid.ActualWidth : (ActualWidth > 0 ? ActualWidth : 1920.0);
         double vpH = RootGrid.ActualHeight > 0 ? RootGrid.ActualHeight : (ActualHeight > 0 ? ActualHeight : 1080.0);
         if (vpW <= 0) vpW = 1920.0;
         if (vpH <= 0) vpH = 1080.0;
 
-        // 3. Activate selected preset with immediate sync
         switch (newPreset)
         {
             case KineticPreset.Editorial:
@@ -1074,7 +1073,6 @@ public partial class FullscreenVibeWindow : Window
                 _lastKineticClockMs = 0.0;
                 _lastKineticPosition = TimeSpan.Zero;
 
-                // Zero Blank Screens: immediately build active phrase and snap camera to it
                 if (_currentLyrics.HasSyncedLyrics && _currentLyrics.Lines.Count > 0)
                 {
                     int totalOffsetMs = _settings.SyncOffsetMs + _currentLyrics.UserOffsetMs;

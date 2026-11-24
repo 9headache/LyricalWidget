@@ -93,7 +93,7 @@ public static class CodeLyricFormatter
         string title = !string.IsNullOrWhiteSpace(track?.Title) ? track.Title.Trim() : "Track";
         string artist = !string.IsNullOrWhiteSpace(track?.Artist) ? track.Artist.Trim() : "Unknown";
 
-        // Line 1: Header Comment
+        // Header comment
         string headerComment = $"// {title} — {artist}";
         var headerTokens = new List<CodeToken>
         {
@@ -165,7 +165,6 @@ public static class CodeLyricFormatter
     {
         string text = raw;
 
-        // 1. CamelCase at most one 2-word helper pair per line
         foreach (var (pattern, replacement) in IdiomPairReplacements)
         {
             var m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
@@ -176,23 +175,18 @@ public static class CodeLyricFormatter
             }
         }
 
-        // 2. Strict word-boundary standalone replacements (&&, ||, =, !)
         foreach (var (pattern, replacement) in WordReplacements)
         {
             text = Regex.Replace(text, pattern, replacement, RegexOptions.IgnoreCase);
         }
 
-        // 3. Standalone "the <word>" -> "the.<word>" (strict word boundary, max 2 per line)
         text = Regex.Replace(text, @"\bthe\s+([a-zA-Z_][a-zA-Z0-9_']*)", "the.$1", RegexOptions.IgnoreCase);
 
-        // Clean up redundant spaces around operators
         text = Regex.Replace(text, @"\s*&&\s*", " && ");
         text = Regex.Replace(text, @"\s*\|\|\s*", " || ");
         text = Regex.Replace(text, @"\s*=\s*", " = ");
         text = text.Trim();
 
-        // 4. Method call / action verb formatting
-        // Check if the line has an ActionVerb to format as a method call
         var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         int verbIndex = -1;
         string? foundVerb = null;
@@ -260,7 +254,6 @@ public static class CodeLyricFormatter
         }
         else if (text.StartsWith("when ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("if ", StringComparison.OrdinalIgnoreCase))
         {
-            // Condition statement
             int sp = text.IndexOf(' ');
             string kw = text[..sp].ToLowerInvariant();
             string cond = text[(sp + 1)..].Trim();
@@ -268,7 +261,6 @@ public static class CodeLyricFormatter
         }
         else
         {
-            // General expression ending with semicolon
             result = text.EndsWith(';') ? text : $"{text};";
         }
 
@@ -344,7 +336,6 @@ public static class CodeLyricFormatter
         {
             int bestSplit = -1;
 
-            // Look for clean break between index 26 and maxLen
             int searchStart = Math.Min(maxLen, remaining.Length - 1);
             int searchEnd = Math.Max(24, maxLen - 16);
 
@@ -370,7 +361,6 @@ public static class CodeLyricFormatter
 
             if (bestSplit < 0)
             {
-                // Fallback: search for any space
                 for (int i = searchStart; i >= searchEnd; i--)
                 {
                     if (remaining[i] == ' ')
@@ -493,7 +483,6 @@ public static class CodeLyricFormatter
             });
         }
 
-        // If there is leftover trailing whitespace, attach to the last token or add as punctuation
         if (!string.IsNullOrEmpty(pendingWhitespace) && tokens.Count > 0)
         {
             var last = tokens[^1];

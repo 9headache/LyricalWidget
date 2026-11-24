@@ -497,12 +497,8 @@
             </Border>
         </Grid>
 
-        <!-- ========================================== -->
-        <!-- LAYER 4: ISOLATED HOST CONTAINERS PER KINETIC PRESET -->
-        <!-- ========================================== -->
-        <!-- Standard 2D Virtual Camera Host (Editorial & Poster Modes) -->
+        <!-- Editorial and Poster preset host -->
         <Grid x:Name="KineticStandardHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
-            <!-- Solid 3-Color Graphic Poster Backdrop (Poster Mode) -->
             <Border x:Name="PosterBackdrop" Visibility="Collapsed" IsHitTestVisible="False" Background="#09090B"/>
 
             <Canvas x:Name="KineticViewportCanvas" ClipToBounds="True" IsHitTestVisible="False"
@@ -515,11 +511,9 @@
             </Canvas>
         </Grid>
 
-        <!-- Organic Frosted Fog & Live Album Backdrop (SpotlightFog Mode) -->
+        <!-- SpotlightFog preset host -->
         <Grid x:Name="SpotlightFogHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
-            <!-- Artwork Group (fades in/out depending on HdArtwork vs FluidColor) -->
             <Grid x:Name="SpotlightArtworkGroup" Opacity="1.0">
-                <!-- Base Sharp Album Cover (Breathing 1.00 -> 1.04) -->
                 <Image x:Name="SpotlightSharpImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
                        RenderOptions.BitmapScalingMode="HighQuality">
                     <Image.RenderTransform>
@@ -527,7 +521,6 @@
                     </Image.RenderTransform>
                 </Image>
 
-                <!-- Pre-Blurred Album Cover Copy with Animated Multi-Stop RadialGradient Fog Mask -->
                 <Image x:Name="SpotlightBlurredImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
                        RenderOptions.BitmapScalingMode="HighQuality">
                     <Image.RenderTransform>
@@ -543,7 +536,6 @@
                     </Image.OpacityMask>
                 </Image>
 
-                <!-- Dark Radial Vignette behind text region to guarantee contrast on bright album covers -->
                 <Border x:Name="SpotlightVignette" Background="#000000" Opacity="0.48" IsHitTestVisible="False">
                     <Border.OpacityMask>
                         <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.65" RadiusY="0.55">
@@ -556,13 +548,11 @@
                 </Border>
             </Grid>
 
-            <!-- Continuous Vertical Scroll Conveyor Canvas -->
             <Canvas x:Name="SpotlightLyricsCanvas" ClipToBounds="True" IsHitTestVisible="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
         </Grid>
 
-        <!-- LAYER 4.6: LIVECODE IDE VISUALIZER HOST -->
+        <!-- LiveCode preset host -->
         <Grid x:Name="LiveCodeHost" Panel.ZIndex="4" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
-            <!-- Atmospheric Artwork Backdrop (Reusing HighResArtworkService) -->
             <Grid x:Name="LiveCodeArtworkGroup" Opacity="1.0" Margin="-200">
                 <Image x:Name="LiveCodeBackdropImage" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5"
                        RenderOptions.BitmapScalingMode="HighQuality">
@@ -575,7 +565,6 @@
                 </Image>
             </Grid>
 
-            <!-- Lightened Moody IDE Tint (~54%) & Vignette (Artwork and bokeh breathe behind colored code) -->
             <Border Background="#880A0D14" IsHitTestVisible="False"/>
             <Border Background="#2E000000" IsHitTestVisible="False">
                 <Border.OpacityMask>
@@ -587,7 +576,6 @@
                 </Border.OpacityMask>
             </Border>
 
-            <!-- Editor Viewport Canvas with Virtual Camera Transform -->
             <Canvas x:Name="LiveCodeViewportCanvas" ClipToBounds="True">
                 <Canvas x:Name="LiveCodeEditorCanvas" ClipToBounds="False">
                     <Canvas.RenderTransform>
@@ -597,16 +585,10 @@
                         </TransformGroup>
                     </Canvas.RenderTransform>
 
-                    <!-- Active Line Highlight Strip & Vertical Accent Bar -->
                     <Canvas x:Name="LiveCodeHighlightsCanvas" ClipToBounds="False"/>
-
-                    <!-- Code Lines Canvas (Absolute Virtual Coordinates) -->
                     <Canvas x:Name="LiveCodeLinesCanvas" ClipToBounds="False"/>
-
-                    <!-- Micro-doodle overlay layer -->
                     <Canvas x:Name="LiveCodeDoodleCanvas" ClipToBounds="False"/>
 
-                    <!-- Multiplayer Live-Share Caret & Artist Tag -->
                     <Canvas x:Name="LiveCodeCaretCanvas" ClipToBounds="False">
                         <Rectangle x:Name="LiveCodeCaretBlock" Width="3.5" Height="40" Fill="#FBBF24"/>
                         <Border x:Name="LiveCodeArtistPill" CornerRadius="4" Padding="7,3" Background="#FF4D6D">
@@ -617,7 +599,6 @@
                 </Canvas>
             </Canvas>
 
-            <!-- Overlay IDE UI Pills (CodeLens Blame & Find overlay) -->
             <Border x:Name="LiveCodeFindPill" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,32,40,0"
                     CornerRadius="8" Background="#D0111420" BorderBrush="#30FFFFFF" BorderThickness="1"
                     Padding="14,6" Opacity="0">
@@ -625,6 +606,7 @@
                            FontFamily="JetBrains Mono, Cascadia Mono, Consolas, monospace" Foreground="#94A3B8"/>
             </Border>
         </Grid>
+
 
         <!-- Fullscreen Intro Title + Artist Hero Card (stacked poster aesthetic) -->
         <Grid x:Name="IntroHeroCard" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="5"

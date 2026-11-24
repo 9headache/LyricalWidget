@@ -322,7 +322,7 @@ public sealed class KineticSpotlightFogRenderer
     {
         if (dt <= 0.0) return;
 
-        // 1. Slow, subtle breathing on sharp & pre-blurred album cover
+        // Subtle breathing on album cover
         double breathe = 1.02 + (0.02 * Math.Sin(currentTimeSec * 0.35));
         if (_sharpScale != null)
         {
@@ -335,7 +335,7 @@ public sealed class KineticSpotlightFogRenderer
             _blurredScale.ScaleY = breathe;
         }
 
-        // 2. Animated multi-stop organic frosted fog mask
+        // Animated fog mask
         if (_fogMask != null)
         {
             double fogTime = currentTimeSec * 0.22;
@@ -353,7 +353,7 @@ public sealed class KineticSpotlightFogRenderer
             _fogMask.RadiusY = ry;
         }
 
-        // 3. Smooth crossfade for HdArtwork vs FluidColor backdrops
+        // Crossfade for HdArtwork vs FluidColor backdrops
         if (_artworkGroup != null)
         {
             bool showArtwork = string.Equals(_backdropMode, "HdArtwork", StringComparison.OrdinalIgnoreCase) && _cachedSharpArt != null;
@@ -363,7 +363,7 @@ public sealed class KineticSpotlightFogRenderer
             _artworkGroup.Opacity = _artworkGroupOpacity;
         }
 
-        // 4. Seek jump detection
+        // Seek detection
         double curPosMs = effectivePos.TotalMilliseconds;
         bool isSeek = _lastPositionMs > 0 && Math.Abs(curPosMs - _lastPositionMs) > 300.0;
         _lastPositionMs = curPosMs;
@@ -386,7 +386,7 @@ public sealed class KineticSpotlightFogRenderer
             _conveyorSpring.Step(ref _scrollPos, ref _scrollVel, _lastActiveIndex, dt);
         }
 
-        // 5. Master conveyor opacity (smooth fade during instrumental/paused)
+        // Conveyor opacity during pause/instrumental
         bool hasActiveContent = isPlaying && !isInstrumental && activeWordIdx >= 0 && _allWords.Count > 0;
         double targetMasterOpacity = hasActiveContent ? 1.0 : 0.0;
         _opacitySpring.Step(ref _masterOpacityPos, ref _masterOpacityVel, targetMasterOpacity, dt);
@@ -397,13 +397,13 @@ public sealed class KineticSpotlightFogRenderer
             return;
         }
 
-        // 6. Velocity smear and vertical stretch calculation
+        // Velocity smear and vertical stretch
         double scrollSpeed = Math.Abs(_scrollVel);
         double stretchY = 1.0 + Math.Clamp(scrollSpeed * 0.035, 0.0, 0.12);
         double smearBlurRadius = Math.Clamp(scrollSpeed * 3.0, 0.0, 10.0);
         if (scrollSpeed < 0.06) smearBlurRadius = 0.0;
 
-        // 7. Dynamic viewport-proportional hero font size
+        // Viewport-proportional hero font size
         int centerIdx = (int)Math.Round(_scrollPos);
         double baseHeroFontSize = Math.Clamp(_viewportHeight * 0.12, 68.0, 150.0);
         double maxAllowedWidth = _viewportWidth * 0.78;
@@ -417,7 +417,6 @@ public sealed class KineticSpotlightFogRenderer
             heroFontSize = Math.Max(38.0, baseHeroFontSize * (maxAllowedWidth / measuredHeroWidth));
         }
 
-        // 8. Update each of the 5 pooled word visual slots along the conveyor
         double stepY = _viewportHeight * 0.17;
 
         for (int i = 0; i < PoolSize; i++)
@@ -437,10 +436,9 @@ public sealed class KineticSpotlightFogRenderer
                 }
                 _slotTextBlocks[i].FontSize = heroFontSize;
 
-                // Vertical conveyor position: delta * (height * 0.17)
                 double posY = delta * stepY;
 
-                // Subtle diagonal offset: gently glides inward to dead-center (X=0)
+                // Subtle diagonal entry glide toward center
                 double lineDir = (word.LineIndex % 2 == 0) ? 1.0 : -1.0;
                 double leanSign = delta >= 0.0 ? lineDir : -lineDir;
                 double posX = leanSign * (_viewportWidth * 0.09) * Math.Min(1.0, absDelta);
@@ -448,7 +446,7 @@ public sealed class KineticSpotlightFogRenderer
                 _slotTranslates[i].X = posX;
                 _slotTranslates[i].Y = posY;
 
-                // Scale: smooth bell curve peaking at delta=0 (1.0 -> 0.42 -> 0.25)
+                // Scale bell curve peaking at center
                 double scale;
                 if (absDelta <= 1.0)
                 {
@@ -464,7 +462,7 @@ public sealed class KineticSpotlightFogRenderer
                 _slotScales[i].ScaleX = scale;
                 _slotScales[i].ScaleY = scale * stretchY;
 
-                // Opacity curve: 1.0 at center, ~0.88 upcoming (+1), ~0.52 past (-1), fading to 0 by 1.85
+                // Opacity falloff
                 double opacity;
                 if (delta >= 0.0)
                 {
@@ -484,7 +482,6 @@ public sealed class KineticSpotlightFogRenderer
 
                 _slotContainers[i].Opacity = _masterOpacityPos * opacity;
 
-                // Color crossfade: White (upcoming) -> Boosted Accent (active hero) -> Muted Accent (past)
                 Color slotColor;
                 if (delta >= 0.0)
                 {
@@ -498,7 +495,6 @@ public sealed class KineticSpotlightFogRenderer
                 }
                 _slotTextBlocks[i].Foreground = new SolidColorBrush(slotColor);
 
-                // Smear blur & shadow intensity
                 _slotBlurs[i].Radius = (absDelta < 0.65) ? smearBlurRadius : 0.0;
                 _slotShadows[i].Opacity = 0.85 * Math.Clamp(1.0 - absDelta, 0.0, 1.0);
             }
