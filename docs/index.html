@@ -3,724 +3,389 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LyricalWidget — Lyrics &amp; 60 FPS Visuals on Your Glass</title>
-  <meta name="description" content="Free, open-source Windows lyrics overlay and fullscreen kinetic visualizer for Spotify and SMTC. Built for gaming setups with ~1–3% CPU typical and zero FPS hit.">
-  <meta property="og:title" content="LyricalWidget — Lyrics &amp; 60 FPS Visuals on Your Glass">
-  <meta property="og:description" content="Free, open-source Windows lyrics overlay and fullscreen kinetic visualizer for Spotify and SMTC. Built for gaming setups with ~1–3% CPU typical and zero FPS hit.">
-  <meta property="og:type" content="website">
-  <link rel="stylesheet" href="styles.css">
+  <title>LyricalWidget — Synced Lyrics. Zero Frame Drops.</title>
+  <meta name="description" content="A free, open-source desktop lyrics overlay and 60 FPS fullscreen visualizer for Spotify and SMTC. Native .NET 10 WPF built for gaming setups.">
+  <meta name="theme-color" content="#0D0E12">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='cg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ffffff'/%3E%3Cstop offset='48%25' stop-color='%23a1a1aa'/%3E%3Cstop offset='72%25' stop-color='%23f4f4f5'/%3E%3Cstop offset='100%25' stop-color='%2352525b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='13.5' fill='%2309090b' stroke='url(%23cg)' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='0.9'/%3E%3Crect x='11' y='13' width='2.2' height='6' rx='1.1' fill='url(%23cg)'/%3E%3Crect x='14.9' y='9.5' width='2.2' height='13' rx='1.1' fill='url(%23cg)'/%3E%3Crect x='18.8' y='11.5' width='2.2' height='9' rx='1.1' fill='url(%23cg)'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-channel="0">
 
-  <!-- Ambient Music-Driven Glow Orbs -->
-  <div class="glow-orb orb-top-left"></div>
-  <div class="glow-orb orb-hero-cyan"></div>
-  <div class="glow-orb orb-mid-amber"></div>
-  <div class="glow-orb orb-bottom-right"></div>
-  <div class="glow-orb orb-footer"></div>
+  <div class="studio-grain" aria-hidden="true"></div>
 
-  <!-- Floating Pill Header -->
-  <header class="header-wrapper">
-    <div class="glass-capsule-nav">
-      <div class="nav-brand-group">
-        <a href="#" class="brand-title">LyricalWidget</a>
-        <span class="version-badge">v2.1</span>
-      </div>
-      <nav class="nav-menu">
-        <a href="#showcase">Showcase</a>
-        <a href="#gallery">Gallery</a>
-        <a href="#modes">Modes</a>
-        <a href="#setup">Setup</a>
-      </nav>
-      <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener" class="nav-github-btn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+  <header class="topbar-wrap">
+    <div class="topbar">
+      <a href="#" class="brand-lockup" aria-label="LyricalWidget home">
+        <svg class="brand-logo-svg" viewBox="0 0 32 32" aria-hidden="true">
+          <defs>
+            <linearGradient id="chrome-logo-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="48%" stop-color="#a1a1aa"/>
+              <stop offset="72%" stop-color="#f4f4f5"/>
+              <stop offset="100%" stop-color="#52525b"/>
+            </linearGradient>
+          </defs>
+          <circle cx="16" cy="16" r="13.5" fill="#09090b" stroke="url(#chrome-logo-grad)" stroke-width="2"/>
+          <circle cx="16" cy="16" r="9.5" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.9"/>
+          <rect x="11" y="13" width="2.2" height="6" rx="1.1" fill="url(#chrome-logo-grad)"/>
+          <rect x="14.9" y="9.5" width="2.2" height="13" rx="1.1" fill="url(#chrome-logo-grad)"/>
+          <rect x="18.8" y="11.5" width="2.2" height="9" rx="1.1" fill="url(#chrome-logo-grad)"/>
         </svg>
-        <span>GitHub</span>
+        <span class="brand-name">LyricalWidget</span>
+        <span class="brand-ver">v2.1</span>
       </a>
+
+      <nav class="topbar-nav" aria-label="Primary navigation">
+        <a href="#showcase">Showcase</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#legal">Privacy &amp; Terms</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <a href="#download" class="btn-topbar-download" data-scroll-download>Download</a>
+        <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener" class="btn-topbar-github" aria-label="View on GitHub">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- Split Hero Section -->
-    <section class="hero-split-section">
+    <section class="hero-chapter">
+      <div class="hero-studio-glow" aria-hidden="true"></div>
       <div class="container">
-        <div class="split-hero-grid">
-          <!-- Left Column -->
-          <div class="hero-left">
-            <div class="hero-eyebrow">
-              <span class="music-waveform-pill">
-                <span class="wave-bar"></span>
-                <span class="wave-bar"></span>
-                <span class="wave-bar"></span>
-                <span class="wave-bar"></span>
-                <span class="wave-bar"></span>
-              </span>
-              <span>Windows 10 / 11 Native</span> &bull; .NET 10 &amp; WPF
-            </div>
-            <h1 class="hero-headline">Lyrics &amp; 60 FPS Visuals on Your Glass</h1>
-            <p class="hero-subcopy">
-              Free, open-source Windows lyrics overlay and fullscreen kinetic visualizer for Spotify and SMTC. Built for gaming setups with ~1–3% CPU typical and zero FPS hit.
+        <div class="hero-split">
+          <div>
+            <div class="hero-eyebrow">WINDOWS 10 &amp; 11 &middot; NATIVE .NET 10 WPF</div>
+            <h1 class="hero-title">
+              Synced Lyrics.
+              <span class="hero-title-chrome">Zero Frame Drops.</span>
+            </h1>
+            <p class="hero-pitch">
+              A free, open-source desktop lyrics overlay and 60 FPS fullscreen visualizer for Spotify &amp; SMTC. Built for gaming setups. No Electron, no paywalls.
             </p>
-            <div class="hero-btn-row">
-              <a href="https://github.com/9headache/LyricalWidget/releases/latest/download/LyricalWidget.exe" class="btn-glass-primary">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+
+            <div class="hero-cta-row">
+              <a href="#download" class="btn-apple-primary" data-scroll-download>Download</a>
+              <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener" class="btn-apple-secondary">
+                <span>View on GitHub</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="7" y1="17" x2="17" y2="7"/>
+                  <polyline points="7 7 17 7 17 17"/>
                 </svg>
-                <span>Download v2.1.0 (.exe)</span>
               </a>
-              <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener" class="btn-glass-secondary">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                <span>GitHub</span>
-              </a>
+            </div>
+
+            <div class="hero-stat-bar">
+              <span>1–3% CPU</span>
+              <span class="stat-sep" aria-hidden="true">/</span>
+              <span>0 FPS Hit</span>
+              <span class="stat-sep" aria-hidden="true">/</span>
+              <span>60 FPS Kinetic</span>
+              <span class="stat-sep" aria-hidden="true">/</span>
+              <span>MIT Open Source</span>
             </div>
           </div>
 
-          <!-- Right Column: Layered Frosted Glass Graphic -->
-          <div class="hero-right">
-            <div class="glass-composition">
-              <div class="glass-layer-back"></div>
-              <div class="glass-layer-main">
-                <div class="mockup-header">
-                  <div class="mockup-status">
-                    <span class="status-dot-pulse"></span>
-                    <span>SPOTIFY SYNCED</span>
-                  </div>
-                  <span class="mockup-badge">GlassiFy HUD</span>
-                </div>
-                <div class="mockup-lyrics-box">
-                  <div class="lyric-prev">Feel the rhythm through the glass</div>
-                  <div class="lyric-active">I'm in the spotlight, watching the smoke rise</div>
-                  <div class="lyric-next">Every word locked directly to the tempo</div>
-                </div>
-                <div class="mockup-progress-wrap">
-                  <div class="progress-bar-track">
-                    <div class="progress-bar-fill"></div>
-                  </div>
-                  <div class="progress-timestamps">
-                    <span>01:42</span>
-                    <span>03:15</span>
-                  </div>
-                </div>
+          <div class="hero-sculpture-col">
+            <div class="hardware-sculpture" id="hero-sculpture" aria-hidden="true">
+              <div class="sculpture-housing">
+                <div class="sculpture-groove-ring"></div>
+                <div class="sculpture-groove-inner"></div>
+                <div class="sculpture-glare-sweep"></div>
               </div>
-              <div class="glass-floating-pill">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <div class="sculpture-logo-core">
+                <svg class="sculpture-svg" viewBox="0 0 32 32">
+                  <defs>
+                    <linearGradient id="sculpture-grad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#ffffff"/>
+                      <stop offset="45%" stop-color="#b4b8c2"/>
+                      <stop offset="72%" stop-color="#f8fafc"/>
+                      <stop offset="100%" stop-color="#52525b"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="16" cy="16" r="13.5" fill="#09090b" stroke="url(#sculpture-grad)" stroke-width="2"/>
+                  <circle cx="16" cy="16" r="9.5" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.9"/>
+                  <rect x="11" y="13" width="2.2" height="6" rx="1.1" fill="url(#sculpture-grad)"/>
+                  <rect x="14.9" y="9.5" width="2.2" height="13" rx="1.1" fill="url(#sculpture-grad)"/>
+                  <rect x="18.8" y="11.5" width="2.2" height="9" rx="1.1" fill="url(#sculpture-grad)"/>
                 </svg>
-                <span>Click-Through Locked (Alt+L)</span>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- 3 Glass Performance Cards Below Hero -->
-        <div class="hero-perf-row reveal-on-scroll">
-          <div class="hero-perf-card">
-            <div class="hero-perf-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-            </div>
-            <h3 class="hero-perf-title">~1–3% CPU Typical</h3>
-            <p class="hero-perf-desc">
-              Ultra-efficient native C# and WPF composition runs quietly in the background without CPU spikes or thread contention.
-            </p>
-          </div>
-
-          <div class="hero-perf-card">
-            <div class="hero-perf-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="2"/>
-                <path d="M6 12h4m-2-2v4m7-2h.01m3 0h.01"/>
-              </svg>
-            </div>
-            <h3 class="hero-perf-title">Zero FPS Hit in Games</h3>
-            <p class="hero-perf-desc">
-              Hardware-accelerated rendering stays out of your GPU pipeline so competitive titles hold their exact target frame rates.
-            </p>
-          </div>
-
-          <div class="hero-perf-card">
-            <div class="hero-perf-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="m4.93 4.93 4.24 4.24m5.66 5.66 4.24 4.24M12 2v4m0 12v4M2 12h4m12 0h4"/>
-              </svg>
-            </div>
-            <h3 class="hero-perf-title">Click-Through Lock (Alt + L)</h3>
-            <p class="hero-perf-desc">
-              Lock position and pass mouse clicks straight through to your games or desktop so you never misclick mid-match.
-            </p>
-          </div>
-        </div>
-
       </div>
     </section>
 
-    <!-- Live Demos Section -->
-    <section class="section" id="showcase">
-      <div class="container">
-        <div class="section-header reveal-on-scroll">
-          <span class="section-tag">Live Demos</span>
-          <h2 class="section-title">See It in Action</h2>
-          <p class="section-desc">
-            Explore the newly released v2.1.0 Fullscreen update alongside real in-game overlay captures.
-          </p>
-        </div>
-
-        <!-- Featured v2.1.0 Video Frame -->
-        <div class="featured-showcase-box reveal-on-scroll">
-          <div class="glass-frame">
-            <div class="glass-frame-header">
-              <div class="window-dots">
-                <span class="w-dot w-dot-red"></span>
-                <span class="w-dot w-dot-yellow"></span>
-                <span class="w-dot w-dot-green"></span>
-              </div>
-              <span class="frame-title">v2.1.0 Fullscreen Update (LiveCode &amp; SpotlightFog)</span>
-              <span class="frame-badge">60 FPS WPF</span>
-            </div>
-            <div class="video-container">
-              <video class="video-player" src="assets/v21-demo.mp4" autoplay muted loop playsinline controls></video>
-            </div>
-            <div class="video-footer-link">
-              <a href="https://github.com/user-attachments/assets/a8525f2e-b613-4b09-bdd5-730abd115832" target="_blank" rel="noopener" class="direct-link">
-                <span>Watch directly on GitHub (v2.1.0 Fullscreen Demo)</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                  <polyline points="15 3 21 3 21 9"/>
-                  <line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-              </a>
-            </div>
+    <section class="manifesto-track" id="manifesto">
+      <div class="manifesto-sticky">
+        <div class="container">
+          <div class="manifesto-stack">
+            <p class="manifesto-line" data-manifesto-line>You shouldn't have to pay just to read synced lyrics.</p>
+            <p class="manifesto-line" data-manifesto-line>And a lyrics app shouldn't eat 400 MB of RAM while you play.</p>
+            <p class="manifesto-line" data-manifesto-line>Built natively in .NET 10 WPF. Free, open-source, and lightweight.</p>
           </div>
         </div>
-
-        <!-- Dual Side-by-Side Videos -->
-        <div class="dual-video-grid reveal-on-scroll">
-          <!-- In-Game Overlay -->
-          <div class="sub-video-card">
-            <div class="glass-frame-header">
-              <div class="window-dots">
-                <span class="w-dot w-dot-red"></span>
-                <span class="w-dot w-dot-yellow"></span>
-                <span class="w-dot w-dot-green"></span>
-              </div>
-              <span class="frame-title">In-Game Overlay (Alt + L)</span>
-            </div>
-            <div class="video-container" data-src-local="assets/ingame-overlay.mp4" data-src-remote="https://github.com/user-attachments/assets/9a0483ba-2bb4-4608-8637-0eae3b832288">
-              <video class="video-player" preload="metadata" playsinline controls>
-                <source src="assets/ingame-overlay.mp4" type="video/mp4">
-                <source src="https://github.com/user-attachments/assets/9a0483ba-2bb4-4608-8637-0eae3b832288" type="video/mp4">
-              </video>
-              <div class="video-fallback-card" style="display: none;">
-                <div class="fallback-icon-wrap">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                </div>
-                <div class="fallback-title">In-Game Overlay Capture</div>
-                <div class="fallback-sub">Browser blocked inline media streaming for this GitHub asset. Open the source video directly:</div>
-                <a href="https://github.com/user-attachments/assets/9a0483ba-2bb4-4608-8637-0eae3b832288" target="_blank" rel="noopener" class="btn-fallback-open">
-                  <span>Open on GitHub</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>
-            <div class="sub-video-body">
-              <h3 class="sub-video-title">In-Game Overlay &amp; Gaming Mode</h3>
-              <p class="sub-video-desc">
-                Shows lyrics cleanly on top of gameplay with transparent click-through lock so your crosshairs are never interrupted.
-              </p>
-              <a href="https://github.com/user-attachments/assets/9a0483ba-2bb4-4608-8637-0eae3b832288" target="_blank" rel="noopener" class="direct-link">
-                <span>Watch In-Game Overlay video on GitHub</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                  <polyline points="15 3 21 3 21 9"/>
-                  <line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <!-- Fullscreen Vibe Mode -->
-          <div class="sub-video-card">
-            <div class="glass-frame-header">
-              <div class="window-dots">
-                <span class="w-dot w-dot-red"></span>
-                <span class="w-dot w-dot-yellow"></span>
-                <span class="w-dot w-dot-green"></span>
-              </div>
-              <span class="frame-title">Fullscreen Vibe Mode (Alt + F)</span>
-            </div>
-            <div class="video-container" data-src-local="assets/fullscreen-vibe.mp4" data-src-remote="https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d">
-              <video class="video-player" preload="metadata" playsinline controls>
-                <source src="assets/fullscreen-vibe.mp4" type="video/mp4">
-                <source src="https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d" type="video/mp4">
-              </video>
-              <div class="video-fallback-card" style="display: none;">
-                <div class="fallback-icon-wrap">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                </div>
-                <div class="fallback-title">Fullscreen Vibe Capture</div>
-                <div class="fallback-sub">Browser blocked inline media streaming for this GitHub asset. Open the source video directly:</div>
-                <a href="https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d" target="_blank" rel="noopener" class="btn-fallback-open">
-                  <span>Open on GitHub</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>
-            <div class="sub-video-body">
-              <h3 class="sub-video-title">Fullscreen Kinetic Vibe</h3>
-              <p class="sub-video-desc">
-                Cinema-grade typographic visualizer built for secondary monitors, TV setups, and background studio immersion.
-              </p>
-              <a href="https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d" target="_blank" rel="noopener" class="direct-link">
-                <span>Watch Fullscreen Vibe video on GitHub</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                  <polyline points="15 3 21 3 21 9"/>
-                  <line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
 
-    <!-- Visual Gallery Section -->
-    <section class="section" id="gallery">
-      <div class="container">
-        <div class="section-header reveal-on-scroll">
-          <span class="section-tag">Visual Gallery</span>
-          <h2 class="section-title">Transparent &amp; Glassify Aesthetics</h2>
-          <p class="section-desc">
-            Seamlessly toggle between a pure borderless transparent HUD and atmospheric frosted glass acrylic.
-          </p>
+    <section class="showcase-track" id="showcase">
+      <div class="showcase-sticky">
+        <div class="showcase-ambient" aria-hidden="true"></div>
+
+        <div class="dial-fixed-pointer" aria-hidden="true">
+          <span class="pointer-needle"></span>
         </div>
 
-        <div class="gallery-grid reveal-on-scroll">
-          <!-- Card 1: Transparent Lyrics -->
-          <div class="gallery-card">
-            <div class="gallery-card-img-wrap">
-              <img class="gallery-card-img" src="https://github.com/user-attachments/assets/f2f4efe7-2511-474d-a2de-077cf4a9eae0" alt="Transparent Lyrics Overlay Widget" loading="lazy">
-            </div>
-            <div class="gallery-card-info">
-              <div class="gallery-card-header">
-                <h3 class="gallery-card-title">Transparent Lyrics Overlay</h3>
-                <span class="gallery-pill">Minimal</span>
-              </div>
-              <p class="gallery-card-desc">
-                Ultra-minimal borderless text overlay with zero backdrop obstruction, keeping your screen clutter-free.
-              </p>
-            </div>
-          </div>
-
-          <!-- Card 2: Glassify Lyrics -->
-          <div class="gallery-card">
-            <div class="gallery-card-img-wrap">
-              <img class="gallery-card-img" src="https://github.com/user-attachments/assets/1ba71b31-c70d-40bb-a1ba-efadc59a9cc5" alt="Glassify Lyrics Frosted Glass Widget" loading="lazy">
-            </div>
-            <div class="gallery-card-info">
-              <div class="gallery-card-header">
-                <h3 class="gallery-card-title">Glassify Lyrics Overlay</h3>
-                <span class="gallery-pill">Frosted Glass</span>
-              </div>
-              <p class="gallery-card-desc">
-                Translucent acrylic glass surface with dynamic album-color tinting, delicate hairline borders, and subtle glow.
-              </p>
-            </div>
-          </div>
-
-          <!-- Card 3: Transparent Idle Clock -->
-          <div class="gallery-card">
-            <div class="gallery-card-img-wrap">
-              <img class="gallery-card-img" src="https://github.com/user-attachments/assets/7da7f988-dbf8-4858-b42a-de082c71b260" alt="Transparent Idle Clock Widget" loading="lazy">
-            </div>
-            <div class="gallery-card-info">
-              <div class="gallery-card-header">
-                <h3 class="gallery-card-title">Transparent Idle Clock</h3>
-                <span class="gallery-pill">Standby HUD</span>
-              </div>
-              <p class="gallery-card-desc">
-                When audio playback is paused, LyricalWidget smoothly transitions into a sleek, unobtrusive desktop digital clock.
-              </p>
-            </div>
-          </div>
-
-          <!-- Card 4: Glassify Idle Clock -->
-          <div class="gallery-card">
-            <div class="gallery-card-img-wrap">
-              <img class="gallery-card-img" src="https://github.com/user-attachments/assets/4c2f7c63-88a8-4257-bbe3-f056dfda7a7d" alt="Glassify Idle Clock Widget" loading="lazy">
-            </div>
-            <div class="gallery-card-info">
-              <div class="gallery-card-header">
-                <h3 class="gallery-card-title">Glassify Idle Clock</h3>
-                <span class="gallery-pill">Modern Acrylic</span>
-              </div>
-              <p class="gallery-card-desc">
-                Sleek frosted card displaying current time, date, and connection status, blending cleanly into your Windows desktop.
-              </p>
-            </div>
-          </div>
-
-          <!-- Wide Card: Fullscreen Split Mode -->
-          <div class="gallery-wide-card">
-            <div class="gallery-card-img-wrap">
-              <img class="gallery-card-img" src="https://github.com/user-attachments/assets/b8e4e8e0-975b-47c1-b9cd-44548b2acf0b" alt="Fullscreen Split Mode" loading="lazy">
-            </div>
-            <div class="gallery-card-info">
-              <div class="gallery-card-header">
-                <h3 class="gallery-card-title">Fullscreen Split Mode (Alt + F)</h3>
-                <span class="gallery-pill">Dual Stage</span>
-              </div>
-              <p class="gallery-card-desc">
-                High-contrast split layout pairing crisp high-resolution album artwork on the left with fluid synchronized kinetic typography and progress scrubbing on the right.
-              </p>
-            </div>
-          </div>
+        <div class="giant-dial-wrap" aria-hidden="true">
+          <svg class="giant-dial-svg" viewBox="0 0 1200 1200">
+            <defs>
+              <linearGradient id="dial-rim-grad" x1="0" y1="0" x2="1" y2="0.4">
+                <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+                <stop offset="50%" stop-color="rgba(255,255,255,0.34)"/>
+                <stop offset="100%" stop-color="rgba(255,255,255,0.06)"/>
+              </linearGradient>
+            </defs>
+            <circle cx="600" cy="600" r="575" fill="none" stroke="url(#dial-rim-grad)" stroke-width="1.2"/>
+            <circle cx="600" cy="600" r="535" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <circle cx="600" cy="600" r="470" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+            <g id="giant-dial-ticks"></g>
+            <!-- Degree markers aligned cleanly with 0deg, +36deg, +72deg from top center -->
+            <g font-family="JetBrains Mono, monospace" font-size="14" font-weight="500" fill="rgba(255,255,255,0.72)" text-anchor="middle">
+              <text x="600" y="92">01</text>
+              <text x="898" y="189" transform="rotate(36 898 189)">02</text>
+              <text x="1083" y="443" transform="rotate(72 1083 443)">03</text>
+            </g>
+          </svg>
         </div>
 
+        <div class="showcase-stage-inner">
+          <div class="cinema-video-shell" id="cinema-video-shell">
+            <video class="stage-video-layer is-active" data-video-idx="0" src="assets/ingame-demo.mp4" muted loop playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="1" src="assets/widget-demo.mp4" muted loop playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="2" src="assets/fullscreen-demo.mp4" muted loop playsinline preload="metadata"></video>
+
+            <div class="cinema-hud">
+              <button type="button" id="cinema-mute-btn" class="mute-btn" aria-label="Unmute active video">
+                <svg id="cinema-mute-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <line x1="23" y1="9" x2="17" y2="15"/>
+                  <line x1="17" y1="9" x2="23" y2="15"/>
+                </svg>
+                <span id="cinema-mute-label">Muted</span>
+              </button>
+
+              <div class="cinema-progress-track" aria-hidden="true">
+                <div class="cinema-progress-fill" id="cinema-progress-fill"></div>
+              </div>
+
+              <span class="cinema-time" id="cinema-time">00:00 / 00:00</span>
+            </div>
+          </div>
+
+          <div class="showcase-top-tabs" role="tablist" aria-label="Showcase video chapters">
+            <button type="button" class="chapter-pill-btn" role="tab" aria-selected="true" data-chapter="0">
+              <span class="pill-num">01</span>
+              <span>In-Game</span>
+            </button>
+            <button type="button" class="chapter-pill-btn" role="tab" aria-selected="false" data-chapter="1">
+              <span class="pill-num">02</span>
+              <span>Widget</span>
+            </button>
+            <button type="button" class="chapter-pill-btn" role="tab" aria-selected="false" data-chapter="2">
+              <span class="pill-num">03</span>
+              <span>Fullscreen</span>
+            </button>
+          </div>
+
+          <div class="showcase-caption-row">
+            <p class="showcase-caption" id="showcase-caption">
+              <strong>In-Game Overlay:</strong> Forza Horizon gameplay running with <code>Alt + L</code> click-through Gaming Mode and zero frame drops.
+            </p>
+            <span class="showcase-hotkey-tag" id="showcase-hotkey">Alt + L &middot; Click-Through</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Modes & Features Bento Grid -->
-    <section class="section" id="modes">
+    <section class="architecture-section" id="architecture">
       <div class="container">
-        <div class="section-header reveal-on-scroll">
-          <span class="section-tag">Modes &amp; Features</span>
-          <h2 class="section-title">Engineered for pure speed</h2>
-          <p class="section-desc">
-            Hardware-accelerated WPF pipelines guarantee ultra-low latency, fluid animations, and zero in-game frame drops.
-          </p>
-        </div>
-
-        <div class="bento-grid reveal-on-scroll">
-          <!-- Card 1: Built for Gaming -->
-          <div class="bento-card highlight">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-            </div>
-            <h3 class="bento-title">~1–3% CPU / No FPS Drop</h3>
-            <p class="bento-desc">
-              Lightweight native architecture engineered to run quietly in the background without causing frametime spikes or microstutter.
+        <div class="arch-grid reveal">
+          <div class="arch-narrative">
+            <div class="section-eyebrow">Architecture</div>
+            <h2>Native speed, zero wrapper tax.</h2>
+            <p>
+              Browser-based desktop apps wrap a full Chromium runtime just to draw text, burning 300–500 MB of memory in the background. LyricalWidget compiles natively on .NET 10 WPF so it stays invisible to your frame counter.
             </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">Low CPU</span>
-              <span class="tag-glass-pill">Hardware Accel</span>
-              <span class="tag-glass-pill">WPF Native</span>
-            </div>
+            <p>
+              Playback hooks directly into Windows SMTC with millisecond timing, races LRCLIB and NetEase in parallel with 30-day offline lyric caching, and checks GitHub Releases automatically in place.
+            </p>
           </div>
 
-          <!-- Card 2: Click-Through Gaming Mode -->
-          <div class="bento-card highlight">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="m4.93 4.93 4.24 4.24m5.66 5.66 4.24 4.24M12 2v4m0 12v4M2 12h4m12 0h4"/>
-              </svg>
+          <div class="ledger-table">
+            <div class="ledger-row">
+              <span class="ledger-key">Engine</span>
+              <span class="ledger-val">.NET 10 WPF</span>
             </div>
-            <h3 class="bento-title">Click-Through Gaming Mode</h3>
-            <p class="bento-desc">
-              Toggle click-through with Alt + L to lock position and pass all mouse events directly to underlying games and windows.
-            </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">Alt + L</span>
-              <span class="tag-glass-pill">Topmost</span>
-              <span class="tag-glass-pill">Zero Misclicks</span>
+            <div class="ledger-row">
+              <span class="ledger-key">Typical CPU</span>
+              <span class="ledger-val">1–3%</span>
             </div>
-          </div>
-
-          <!-- Card 3: LiveCode IDE -->
-          <div class="bento-card">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 18 22 12 16 6"/>
-                <polyline points="8 6 2 12 8 18"/>
-              </svg>
+            <div class="ledger-row">
+              <span class="ledger-key">Gaming Mode</span>
+              <span class="ledger-val">Click-Through (Alt + L)</span>
             </div>
-            <h3 class="bento-title">LiveCode Mode</h3>
-            <p class="bento-desc">
-              Procedurally formats lyric lines into syntax-highlighted code tokens with an authentic multiplayer artist cursor and camera tracking.
-            </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">Syntax Highlighting</span>
-              <span class="tag-glass-pill">Artist Cursor</span>
-              <span class="tag-glass-pill">Macro Cam</span>
+            <div class="ledger-row">
+              <span class="ledger-key">Fullscreen</span>
+              <span class="ledger-val">60 FPS Kinetic (Alt + F)</span>
             </div>
-          </div>
-
-          <!-- Card 4: Spotlight Fog -->
-          <div class="bento-card">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-              </svg>
+            <div class="ledger-row">
+              <span class="ledger-key">Artwork</span>
+              <span class="ledger-val">1200&times;1200 HD</span>
             </div>
-            <h3 class="bento-title">Spotlight Fog Preset</h3>
-            <p class="bento-desc">
-              Spring-driven vertical kinetic word scroll gliding smoothly over an organic frosted fog mask with high-resolution artwork.
-            </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">Spring Dynamics</span>
-              <span class="tag-glass-pill">Frosted Fog</span>
-              <span class="tag-glass-pill">60 FPS</span>
-            </div>
-          </div>
-
-          <!-- Card 5: 1200×1200 HD Artwork -->
-          <div class="bento-card">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="3"/>
-                <line x1="12" y1="2" x2="12" y2="4"/>
-                <line x1="12" y1="20" x2="12" y2="22"/>
-              </svg>
-            </div>
-            <h3 class="bento-title">1200×1200 HD Artwork</h3>
-            <p class="bento-desc">
-              Bypasses blurry 300px Windows SMTC thumbnails by fetching official HD covers from iTunes and Deezer, with fluid color fallback.
-            </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">Keyless Fetch</span>
-              <span class="tag-glass-pill">Fluid Fallback</span>
-              <span class="tag-glass-pill">In-Memory Cache</span>
-            </div>
-          </div>
-
-          <!-- Card 6: 100% Free & Open Source -->
-          <div class="bento-card">
-            <div class="bento-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-            </div>
-            <h3 class="bento-title">100% Free &amp; Open Source</h3>
-            <p class="bento-desc">
-              Zero subscriptions, zero ads, zero telemetry, and zero bloat. Portable single-file executable with automatic update checking.
-            </p>
-            <div class="bento-pills">
-              <span class="tag-glass-pill">MIT License</span>
-              <span class="tag-glass-pill">Single Binary</span>
-              <span class="tag-glass-pill">No Telemetry</span>
+            <div class="ledger-row">
+              <span class="ledger-key">Price</span>
+              <span class="ledger-val">Free Forever</span>
             </div>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- Quick Setup & Shortcuts -->
-    <section class="section" id="setup">
+    <section class="download-section" id="download">
       <div class="container">
-        <div class="section-header reveal-on-scroll">
-          <span class="section-tag">Quickstart</span>
-          <h2 class="section-title">Up and running in seconds</h2>
-          <p class="section-desc">
-            Zero manual configuration required. Launch the executable and start audio playback in any player.
-          </p>
-        </div>
-
-        <div class="setup-layout reveal-on-scroll">
-          <!-- Step cards -->
-          <div class="steps-container">
-            <div class="step-card">
-              <div class="step-circle">1</div>
-              <div class="step-info">
-                <h3>Download LyricalWidget.exe</h3>
-                <p>Standalone portable binary. Place it anywhere on your PC—no installer, no extra dependencies, and no admin rights needed.</p>
-              </div>
-            </div>
-
-            <div class="step-card">
-              <div class="step-circle">2</div>
-              <div class="step-info">
-                <h3>Play music on your favorite app</h3>
-                <p>Supports Spotify, Apple Music, Tidal, YouTube Music in browser, or any player publishing to native Windows Media Controls (SMTC).</p>
-              </div>
-            </div>
-
-            <div class="step-card">
-              <div class="step-circle">3</div>
-              <div class="step-info">
-                <h3>Press Alt + F for Fullscreen Vibe</h3>
-                <p>Instantly enter cinema kinetic typography mode, cycle vibes with <code>Alt + V</code>, or lock click-through with <code>Alt + L</code>.</p>
-              </div>
+        <div class="download-inner reveal">
+          <div class="download-emblem" id="download-emblem" aria-hidden="true">
+            <div class="download-ring"></div>
+            <div class="download-emblem-disc">
+              <svg class="download-emblem-svg" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="13.5" fill="#09090b" stroke="url(#chrome-logo-grad)" stroke-width="1.8"/>
+                <circle cx="16" cy="16" r="9.5" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+                <rect x="11" y="13" width="2.2" height="6" rx="1.1" fill="url(#chrome-logo-grad)"/>
+                <rect x="14.9" y="9.5" width="2.2" height="13" rx="1.1" fill="url(#chrome-logo-grad)"/>
+                <rect x="18.8" y="11.5" width="2.2" height="9" rx="1.1" fill="url(#chrome-logo-grad)"/>
+              </svg>
+              <div class="download-sweep"></div>
             </div>
           </div>
 
-          <!-- Shortcuts Glass Card -->
-          <div class="shortcuts-card">
-            <div class="shortcuts-header">
-              <div class="window-dots">
-                <span class="w-dot w-dot-red"></span>
-                <span class="w-dot w-dot-yellow"></span>
-                <span class="w-dot w-dot-green"></span>
-              </div>
-              <span class="frame-title">shortcuts.conf</span>
+          <h2 class="download-heading">Everything in one portable .exe.</h2>
+
+          <div class="explainer-grid">
+            <div class="explainer-cell">
+              <h3>Instant SMTC Sync</h3>
+              <p>Auto-detects Spotify &amp; Windows media players with zero login.</p>
             </div>
-            <div class="shortcuts-body">
-              <div class="shortcut-item">
-                <span class="key-pill">Alt + F</span>
-                <span class="key-desc">Toggle Fullscreen Kinetic Mode</span>
-              </div>
-              <div class="shortcut-item">
-                <span class="key-pill">Alt + V</span>
-                <span class="key-desc">Cycle typography preset vibes</span>
-              </div>
-              <div class="shortcut-item">
-                <span class="key-pill">Alt + L</span>
-                <span class="key-desc">Toggle click-through lock (Game Mode)</span>
-              </div>
-              <div class="shortcut-item">
-                <span class="key-pill">Ctrl + Wheel</span>
-                <span class="key-desc">Volume control over album artwork</span>
-              </div>
-              <div class="shortcut-item">
-                <span class="key-pill">Tray Icon</span>
-                <span class="key-desc">Offset calibration, theme &amp; settings</span>
-              </div>
+            <div class="explainer-cell">
+              <h3>Gaming Click-Through (Alt + L)</h3>
+              <p>Locks lyrics over games so your mouse never clicks the widget.</p>
             </div>
+            <div class="explainer-cell">
+              <h3>60 FPS Fullscreen Visuals (Alt + F)</h3>
+              <p>LiveCode, SpotlightFog, and 1200&times;1200 HD artwork.</p>
+            </div>
+            <div class="explainer-cell">
+              <h3>Zero Bloat &amp; Auto-Updates</h3>
+              <p>Single portable .exe, no runtimes to install, updates from GitHub Releases.</p>
+            </div>
+          </div>
+
+          <div class="download-actions">
+            <a href="https://github.com/9headache/LyricalWidget/releases/latest/download/LyricalWidget.exe" class="btn-apple-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Download for Windows</span>
+            </a>
+            <div class="download-meta">v2.1.0 &middot; Windows 10 / 11 &middot; Standalone .exe &middot; MIT License</div>
+            <p class="smartscreen-note">
+              Unsigned open-source app: click <strong>More info &rarr; Run anyway</strong> on first launch.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="legal-section" id="legal">
+      <div class="container">
+        <div class="legal-header reveal">
+          <div>
+            <div class="section-eyebrow">Transparency</div>
+            <h2>Privacy &amp; Terms</h2>
+          </div>
+
+          <div class="legal-tabs" role="tablist" aria-label="Privacy and terms tabs">
+            <button type="button" class="legal-tab-btn" role="tab" aria-selected="true" data-legal-tab="privacy">Privacy &amp; Zero Data</button>
+            <button type="button" class="legal-tab-btn" role="tab" aria-selected="false" data-legal-tab="terms">Terms of Service</button>
           </div>
         </div>
 
+        <div class="legal-panel is-active reveal" id="legal-panel-privacy" role="tabpanel">
+          <div class="legal-col">
+            <h3>Zero Telemetry. Zero Tracking.</h3>
+            <p>
+              LyricalWidget collects zero telemetry, zero analytics, and never tracks or sells your data. Song detection stays 100% local via Windows SMTC.
+            </p>
+          </div>
+          <div class="legal-col">
+            <h3>Open-Source Network Lookups</h3>
+            <p>
+              Outbound requests are strictly lyric and artwork fetches (LRCLIB, NetEase, iTunes/Deezer) and GitHub Release checks. The entire codebase is open source: feel free to inspect every line on GitHub.
+            </p>
+          </div>
+        </div>
+
+        <div class="legal-panel" id="legal-panel-terms" role="tabpanel">
+          <div class="legal-col">
+            <h3>MIT Open-Source License</h3>
+            <p>
+              Provided completely free under the MIT License ("as is", without warranty). No user accounts, license keys, or recurring subscriptions are required.
+            </p>
+          </div>
+          <div class="legal-col">
+            <h3>Independent Project</h3>
+            <p>
+              LyricalWidget is an independent community project and is not affiliated with, endorsed by, or sponsored by Spotify AB or any third-party media platform.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="footer">
+  <footer class="site-footer">
     <div class="container">
-      <div class="footer-links">
-        <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/9headache/LyricalWidget/releases/latest" target="_blank" rel="noopener">Releases</a>
-        <a href="https://github.com/9headache/LyricalWidget/issues" target="_blank" rel="noopener">Issues</a>
-        <a href="https://github.com/9headache/LyricalWidget/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+      <div class="footer-top">
+        <a href="https://github.com/9headache" target="_blank" rel="noopener" class="footer-credit">
+          <svg class="brand-logo-svg" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="13.5" fill="#09090b" stroke="url(#chrome-logo-grad)" stroke-width="2"/>
+            <circle cx="16" cy="16" r="9.5" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.9"/>
+            <rect x="11" y="13" width="2.2" height="6" rx="1.1" fill="url(#chrome-logo-grad)"/>
+            <rect x="14.9" y="9.5" width="2.2" height="13" rx="1.1" fill="url(#chrome-logo-grad)"/>
+            <rect x="18.8" y="11.5" width="2.2" height="9" rx="1.1" fill="url(#chrome-logo-grad)"/>
+          </svg>
+          <span>Made with love by 9headache</span>
+        </a>
+
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="https://github.com/9headache/LyricalWidget" target="_blank" rel="noopener">View on GitHub</a>
+          <a href="https://github.com/9headache/LyricalWidget/releases/latest" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/9headache/LyricalWidget/issues" target="_blank" rel="noopener">Report an Issue</a>
+          <a href="#legal">MIT License</a>
+        </nav>
       </div>
-      <p class="footer-quote">&ldquo;Got blocked for asking why a desktop lyrics app costs $12, so I made mine free and open-source.&rdquo;</p>
+
+      <p class="footer-quote">&ldquo;Built free and open-source because desktop lyrics shouldn't sit behind a paywall.&rdquo;</p>
     </div>
   </footer>
 
-  <!-- Client Interaction & Motion Controller -->
-  <script>
-    // 1. Scroll-linked ambient light shift & smooth performance
-    (function initScrollEffects() {
-      let ticking = false;
-      function onScroll() {
-        if (!ticking) {
-          requestAnimationFrame(() => {
-            const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-            const scrollP = Math.min(1, Math.max(0, window.scrollY / maxScroll));
-            document.documentElement.style.setProperty('--scroll-p', scrollP.toFixed(3));
-            ticking = false;
-          });
-          ticking = true;
-        }
-      }
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-    })();
-
-    // 2. IntersectionObserver for fluid card & section reveals
-    (function initScrollReveals() {
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReduced || !('IntersectionObserver' in window)) {
-        document.querySelectorAll('.reveal-on-scroll').forEach(el => el.classList.add('is-revealed'));
-        return;
-      }
-
-      const observer = new IntersectionObserver((entries, obs) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-revealed');
-            obs.unobserve(entry.target);
-          }
-        });
-      }, {
-        threshold: 0.12,
-        rootMargin: '0px 0px -40px 0px'
-      });
-
-      document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
-    })();
-
-    // 3. Resilient video player & CORS fallback controller
-    (function initVideoControllers() {
-      document.querySelectorAll('.video-container').forEach(container => {
-        const video = container.querySelector('video');
-        const fallback = container.querySelector('.video-fallback-card');
-        if (!video || !fallback) return;
-
-        let hasFallenBack = false;
-        function triggerFallback() {
-          if (hasFallenBack) return;
-          hasFallenBack = true;
-          video.pause();
-          video.style.display = 'none';
-          fallback.style.display = 'flex';
-        }
-
-        // Catch load errors on video or any source tag
-        video.addEventListener('error', triggerFallback, true);
-        video.querySelectorAll('source').forEach(src => {
-          src.addEventListener('error', () => {
-            // If the last source fails
-            const sources = Array.from(video.querySelectorAll('source'));
-            if (sources.indexOf(src) === sources.length - 1) {
-              triggerFallback();
-            }
-          });
-        });
-
-        // Verify duration once metadata is loaded
-        video.addEventListener('loadedmetadata', () => {
-          if (!video.duration || isNaN(video.duration) || video.duration === 0) {
-            setTimeout(() => {
-              if (!video.duration || isNaN(video.duration) || video.duration === 0) {
-                triggerFallback();
-              }
-            }, 1200);
-          }
-        });
-
-        // Fallback safeguard if video gets stalled or stuck at 0:00 without playing
-        setTimeout(() => {
-          if (video.networkState === 3 || (video.readyState === 0 && !video.duration)) {
-            triggerFallback();
-          }
-        }, 3500);
-      });
-    })();
-  </script>
-
+  <script src="app.js"></script>
 </body>
 </html>
