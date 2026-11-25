@@ -183,6 +183,7 @@ public partial class MainWindow : Window
         _trayService.GamingModeToggled += enabled => Dispatcher.Invoke(() => ApplyGamingMode(enabled));
         _trayService.FpsCapToggled += fps => Dispatcher.Invoke(() => SetFpsCap(fps));
         _trayService.ShowStartupGuideRequested += () => Dispatcher.Invoke(ShowStartupGuide);
+        _trayService.WhatsNewRequested += () => Dispatcher.Invoke(ShowWhatsNew);
         _trayService.ResetPositionRequested += () => Dispatcher.Invoke(ResetOverlayPosition);
         _trayService.ReportBugRequested += () => Dispatcher.Invoke(ShowBugReporter);
         _trayService.ClearLyricsCacheRequested += () => _lyricsService.ClearCache();

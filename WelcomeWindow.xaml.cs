@@ -36,6 +36,8 @@ public partial class WelcomeWindow : Window
         }
 
         Loaded += OnLoaded;
+        // Runs for every close path (button, Esc, Alt+F4) so the overlay is always revealed
+        Closed += (s, e) => _closedCallback?.Invoke();
         KeyDown += OnKeyDown;
         MouseDown += (s, e) =>
         {
@@ -120,6 +122,8 @@ public partial class WelcomeWindow : Window
             CardScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleIn);
             CardScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn);
             CardTranslate.BeginAnimation(TranslateTransform.YProperty, slideIn);
+
+            Activate();
         }
     }
 
@@ -142,7 +146,7 @@ public partial class WelcomeWindow : Window
         _isClosing = true;
 
         _blurEffect = new BlurEffect { Radius = 0.0 };
-        CardBorder.Effect = _blurEffect;
+        CardHost.Effect = _blurEffect;
 
         double targetScale = (!_isFirstBoot && !_isReplay) ? 0.95 : 0.94;
         double maxBlur = (!_isFirstBoot && !_isReplay) ? 10.0 : 12.0;
@@ -160,11 +164,7 @@ public partial class WelcomeWindow : Window
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
 
-        fadeOut.Completed += (s, e) =>
-        {
-            Close();
-            _closedCallback?.Invoke();
-        };
+        fadeOut.Completed += (s, e) => Close();
 
         _blurEffect.BeginAnimation(BlurEffect.RadiusProperty, blurAnim);
         CardScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleOut);

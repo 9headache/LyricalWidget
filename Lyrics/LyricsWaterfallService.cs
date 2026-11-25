@@ -32,6 +32,9 @@ public class LyricsWaterfallService : IDisposable
     private readonly Dictionary<string, LinkedListNode<(string Key, LrcDocument Doc)>> _l1Map = new();
     private const int L1Capacity = 50;
 
+    // Tracks whose next load must go back to the providers instead of the cache
+    private readonly HashSet<string> _refetchKeys = new();
+
     public LyricsWaterfallService()
     {
         var handler = new SocketsHttpHandler
@@ -54,6 +57,35 @@ public class LyricsWaterfallService : IDisposable
         });
     }
 
+    /// <summary>
+    /// Makes the next load of this track skip the cache. The request survives cancelled loads, and the
+    /// cached copy stays on disk as a fallback for when the providers are unreachable.
+    /// </summary>
+    public void RequestRefetch(TrackInfo track)
+    {
+        if (!track.IsValid) return;
+        lock (_l1Lock)
+        {
+            _refetchKeys.Add(track.CacheKey);
+        }
+    }
+
+    private bool IsRefetchPending(string cacheKey)
+    {
+        lock (_l1Lock)
+        {
+            return _refetchKeys.Contains(cacheKey);
+        }
+    }
+
+    private void CompleteRefetch(string cacheKey)
+    {
+        lock (_l1Lock)
+        {
+            _refetchKeys.Remove(cacheKey);
+        }
+    }
+
     public Task<LrcDocument> GetLyricsAsync(TrackInfo track, CancellationToken cancellationToken = default)
     {
         return GetLyricsAsync(track, onUpgradeAvailable: null, cancellationToken);
@@ -67,6 +99,8 @@ public class LyricsWaterfallService : IDisposable
         }
 
         string cacheKey = track.CacheKey;
+        bool refetch = IsRefetchPending(cacheKey);
+        LrcDocument? refetchFallback = null;
 
         // Check L1 In-Memory LRU Cache
         var l1Doc = GetFromL1Cache(cacheKey);
@@ -84,7 +118,8 @@ public class LyricsWaterfallService : IDisposable
             {
                 System.Diagnostics.Debug.WriteLine($"[Lyrics] Could not refresh cache timestamp: {ex.Message}");
             }
-            return l1Doc;
+            if (!refetch) return l1Doc;
+            refetchFallback = l1Doc;
         }
 
         string cacheFilePath = GetCacheFilePath(track);
@@ -121,8 +156,13 @@ public class LyricsWaterfallService : IDisposable
                             System.Diagnostics.Debug.WriteLine($"[Lyrics] Could not refresh disk cache timestamp: {ex.Message}");
                         }
 
-                        AddToL1Cache(cacheKey, cachedDoc);
-                        return cachedDoc;
+                        if (!refetch)
+                        {
+                            AddToL1Cache(cacheKey, cachedDoc);
+                            return cachedDoc;
+                        }
+                        // Disk copy also carries the saved per-song sync nudge
+                        refetchFallback = cachedDoc;
                     }
                 }
             }
@@ -199,6 +239,12 @@ public class LyricsWaterfallService : IDisposable
                 }
             }
 
+            if (refetchFallback != null)
+            {
+                winner.UserOffsetMs = refetchFallback.UserOffsetMs;
+            }
+            if (!cancellationToken.IsCancellationRequested) CompleteRefetch(cacheKey);
+
             AddToL1Cache(cacheKey, winner);
             await SaveToCacheAsync(cacheFilePath, winner, cancellationToken);
 
@@ -233,6 +279,7 @@ public class LyricsWaterfallService : IDisposable
                             var candidate = await finishedUpgradeTask;
                             if (candidate != null && candidate.HasSyncedLyrics && candidate.HasWordSync && !IsPoisonedGibberish(candidate))
                             {
+                                candidate.UserOffsetMs = winner.UserOffsetMs;
                                 AddToL1Cache(cacheKey, candidate);
                                 await SaveToCacheAsync(cacheFilePath, candidate, cancellationToken);
                                 onUpgradeAvailable(candidate);
@@ -254,6 +301,13 @@ public class LyricsWaterfallService : IDisposable
             }, cancellationToken);
 
             return winner;
+        }
+
+        if (!cancellationToken.IsCancellationRequested) CompleteRefetch(cacheKey);
+        if (refetchFallback != null)
+        {
+            AddToL1Cache(cacheKey, refetchFallback);
+            return refetchFallback;
         }
 
         return LrcDocument.Empty(isInstrumental: false, isNotFound: true, provider: "None");

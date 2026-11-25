@@ -8,17 +8,17 @@ namespace LyricalWidget.Media;
 
 public sealed class VibePalette
 {
-    public Color Primary { get; set; } = Color.FromRgb(0x60, 0xA5, 0xFA);
-    public Color Secondary { get; set; } = Color.FromRgb(0xA8, 0x55, 0xF7);
-    public Color Accent { get; set; } = Color.FromRgb(0xEC, 0x48, 0x99);
-    public Color Highlight { get; set; } = Color.FromRgb(0x38, 0xBD, 0xF8);
-    public Color DarkAnchor { get; set; } = Color.FromRgb(0x0B, 0x0E, 0x17);
+    public Color Primary { get; set; } = Color.FromRgb(0xA1, 0xA1, 0xAA);
+    public Color Secondary { get; set; } = Color.FromRgb(0x52, 0x52, 0x5B);
+    public Color Accent { get; set; } = Color.FromRgb(0x71, 0x71, 0x7A);
+    public Color Highlight { get; set; } = Color.FromRgb(0xD4, 0xD4, 0xD8);
+    public Color DarkAnchor { get; set; } = Color.FromRgb(0x07, 0x08, 0x0B);
     public Color[] Colors { get; set; } = Array.Empty<Color>();
     public bool IsMonochrome { get; set; } = false;
 
     public static VibePalette Default()
     {
-        var p = new VibePalette();
+        var p = new VibePalette { IsMonochrome = true };
         p.Colors = new[] { p.Primary, p.Secondary, p.Accent, p.Highlight, p.DarkAnchor };
         return p;
     }
@@ -28,19 +28,19 @@ public sealed class ThemedLyricColors
 {
     public Color ActiveColor { get; init; } = Colors.White;
     public Color InactiveColor { get; init; } = Color.FromArgb(0x59, 0xFF, 0xFF, 0xFF);
-    public Color AccentGlowColor { get; init; } = Color.FromRgb(0x60, 0xA5, 0xFA);
+    public Color AccentGlowColor { get; init; } = Color.FromRgb(0xD4, 0xD4, 0xD8);
 
     public static ThemedLyricColors DefaultWhite() => new()
     {
         ActiveColor = Colors.White,
         InactiveColor = Color.FromArgb(0x59, 0xFF, 0xFF, 0xFF),
-        AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+        AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
     };
 }
 
 public static class ColorExtractor
 {
-    private static readonly Color DefaultAccent = Color.FromRgb(0x60, 0xA5, 0xFA); // Sky Blue 400
+    private static readonly Color DefaultAccent = Color.FromRgb(0xD4, 0xD4, 0xD8); // Chrome
 
     public static Color ExtractDominantColor(BitmapSource? bitmap)
     {
@@ -340,7 +340,7 @@ public static class ColorExtractor
             {
                 ActiveColor = Colors.White, // pure crisp White #FFFFFF
                 InactiveColor = Color.FromArgb((byte)Math.Round(0.35 * 255.0), 255, 255, 255), // soft translucent grey Opacity ~0.35
-                AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+                AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
             };
         }
 

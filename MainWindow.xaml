@@ -25,13 +25,13 @@
         <!-- Specular rim for Glassify Fluid Glass -->
         <LinearGradientBrush x:Key="SpecularGlassBorder" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#60FFFFFF" Offset="0.0"/>
-            <GradientStop Color="#3038BDF8" Offset="0.45"/>
+            <GradientStop Color="#30A1A1AA" Offset="0.45"/>
             <GradientStop Color="#14FFFFFF" Offset="1.0"/>
         </LinearGradientBrush>
 
         <LinearGradientBrush x:Key="DefaultProgressGradient" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#38BDF8" Offset="0.0"/>
-            <GradientStop Color="#818CF8" Offset="1.0"/>
+            <GradientStop Color="#A1A1AA" Offset="0.0"/>
+            <GradientStop Color="#FFFFFF" Offset="1.0"/>
         </LinearGradientBrush>
 
         <!-- Slider Theme Style -->
@@ -44,13 +44,29 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
                         <Grid>
-                            <Border Height="4" CornerRadius="2" Background="#334155" VerticalAlignment="Center"/>
+                            <Border Height="4" CornerRadius="2" Background="#27272A" VerticalAlignment="Center"/>
                             <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton IsHitTestVisible="False" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2" VerticalAlignment="Center">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                            <GradientStop Color="#52525B" Offset="0.0"/>
+                                                            <GradientStop Color="#F4F4F5" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
                                     <Thumb Width="12" Height="12" Cursor="Hand">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border CornerRadius="6" Background="#38BDF8" BorderBrush="#FFFFFF" BorderThickness="1.5">
+                                                <Border CornerRadius="6" Background="{StaticResource ChromeFillBrush}" BorderBrush="#52525B" BorderThickness="1">
                                                     <Border.Effect>
                                                         <DropShadowEffect BlurRadius="4" ShadowDepth="1" Direction="270" Color="#000000" Opacity="0.5"/>
                                                     </Border.Effect>
@@ -68,7 +84,7 @@
 
         <!-- Modern Pill Button Style -->
         <Style x:Key="ToolbarPillButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="Foreground" Value="#D4D4D8"/>
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="8,3"/>
@@ -135,7 +151,7 @@
         <!-- ========================================== -->
         <Border Grid.Row="0" x:Name="UnlockToolbar" Visibility="Collapsed"
                 CornerRadius="14" Margin="0,0,0,8" Padding="12,8"
-                Background="#F00F1118" BorderBrush="#8038BDF8" BorderThickness="1">
+                Background="#F00E1016" BorderBrush="#1AFFFFFF" BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.6"/>
             </Border.Effect>
@@ -151,30 +167,30 @@
 
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Mode -->
-                        <TextBlock Text="Mode:" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="Mode:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <Button x:Name="BtnModeLyricsOnly" Content="Lyrics Only" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnModeLyricsOnlyClicked"/>
                         <Button x:Name="BtnModeSideBySide" Content="Album + Lyrics" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnModeSideBySideClicked"/>
                         <Button x:Name="BtnModeAlbumOnly" Content="Album Only" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnModeAlbumOnlyClicked"/>
 
                         <!-- Background Style -->
-                        <TextBlock Text="Bg:" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,0,5,0"/>
+                        <TextBlock Text="Bg:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
                         <Button x:Name="BtnBgTransparent" Content="Transparent" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBgTransparentClicked"/>
                         <Button x:Name="BtnBgGlass" Content="Glassify" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnBgGlassClicked"/>
 
                         <!-- Visible Lines Count -->
-                        <TextBlock Text="Lines:" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,0,5,0"/>
+                        <TextBlock Text="Lines:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
                         <Button x:Name="BtnLinesAuto" Content="Auto" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLinesAutoClicked"/>
                         <Button x:Name="BtnLines2" Content="2" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLines2Clicked"/>
                         <Button x:Name="BtnLines3" Content="3" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLines3Clicked"/>
                         <Button x:Name="BtnLines5" Content="5" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnLines5Clicked"/>
 
                         <!-- Animation Style -->
-                        <TextBlock Text="Motion:" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,0,5,0"/>
+                        <TextBlock Text="Motion:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
                         <Button x:Name="BtnMotionFluid" Content="Fluid" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnMotionFluidClicked" ToolTip="Fluid Wave"/>
 
                         <!-- Alignment toggle for Lyrics Only mode -->
                         <StackPanel x:Name="AlignTogglePanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-                            <TextBlock Text="Align:" FontSize="10.5" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,0,5,0"/>
+                            <TextBlock Text="Align:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
                             <Button x:Name="BtnAlignCenter" Content="Center" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlignCenterClicked"/>
                             <Button x:Name="BtnAlignLeft" Content="Left" Style="{StaticResource ToolbarPillButton}" Click="OnAlignLeftClicked"/>
                         </StackPanel>
@@ -183,9 +199,9 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button x:Name="BtnFullscreenVibe" Content="Vibe (Alt+F)" Style="{StaticResource ToolbarPillButton}"
                                 Margin="0,0,8,0" Click="OnFullscreenVibeClicked" ToolTip="Open Fullscreen Vibe Mode"/>
-                        <TextBlock x:Name="LblLockShortcut" Text="Alt + L" FontSize="10" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="LblLockShortcut" Text="Alt + L" FontSize="10" Foreground="#71717A" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <Button x:Name="BtnLockOverlay" Content="Lock" Style="{StaticResource ToolbarPillButton}"
-                                Background="#3538BDF8" BorderBrush="#38BDF8" Foreground="#38BDF8" Click="OnLockClicked"/>
+                                Background="#2EFFFFFF" BorderBrush="#A1A1AA" Foreground="#F4F4F5" Click="OnLockClicked"/>
                     </StackPanel>
                 </Grid>
 
@@ -200,8 +216,8 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock Text="Font Size" FontSize="10" Foreground="#94A3B8"/>
-                            <TextBlock x:Name="LblFontSize" Text="22px" FontSize="10" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Font Size" FontSize="10" Foreground="#A1A1AA"/>
+                            <TextBlock x:Name="LblFontSize" Text="22px" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
                         </Grid>
                         <Slider x:Name="SliderFontSize" Style="{StaticResource ModernSlider}" Minimum="14" Maximum="36" Value="22"
                                 SmallChange="1" LargeChange="2" Margin="0,3,0,0" ValueChanged="OnFontSizeChanged"/>
@@ -209,8 +225,8 @@
 
                     <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock Text="Opacity" FontSize="10" Foreground="#94A3B8"/>
-                            <TextBlock x:Name="LblOpacity" Text="95%" FontSize="10" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Opacity" FontSize="10" Foreground="#A1A1AA"/>
+                            <TextBlock x:Name="LblOpacity" Text="95%" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
                         </Grid>
                         <Slider x:Name="SliderOpacity" Style="{StaticResource ModernSlider}" Minimum="0.30" Maximum="1.0" Value="0.95"
                                 SmallChange="0.05" LargeChange="0.1" Margin="0,3,0,0" ValueChanged="OnOpacityChanged"/>
@@ -218,8 +234,8 @@
 
                     <StackPanel Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock Text="Sync Offset (Alt+[/])" FontSize="10" Foreground="#94A3B8"/>
-                            <TextBlock x:Name="LblSyncOffset" Text="+150 ms" FontSize="10" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Sync Offset (Alt+[/])" FontSize="10" Foreground="#A1A1AA"/>
+                            <TextBlock x:Name="LblSyncOffset" Text="+150 ms" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
                         </Grid>
                         <Slider x:Name="SliderSyncOffset" Style="{StaticResource ModernSlider}" Minimum="-500" Maximum="500" Value="150"
                                 SmallChange="50" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="50" Margin="0,3,0,0"
@@ -230,35 +246,35 @@
                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
                         <CheckBox x:Name="ChkThemeLyrics" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnThemeLyricsChecked" Unchecked="OnThemeLyricsChecked">
-                            <TextBlock Text="Theme Lyrics" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Theme Lyrics" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkGamingMode" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnGamingModeChecked" Unchecked="OnGamingModeChecked">
-                            <TextBlock Text="Game Mode" FontSize="10.5" FontWeight="SemiBold" Foreground="#38BDF8"/>
+                            <TextBlock Text="Game Mode" FontSize="10.5" FontWeight="SemiBold" Foreground="#F4F4F5"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkEcoFps" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnEcoFpsChecked" Unchecked="OnEcoFpsChecked">
-                            <TextBlock Text="30 FPS" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="30 FPS" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkTrackBanner" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnTrackBannerChecked" Unchecked="OnTrackBannerChecked">
-                            <TextBlock Text="Banner" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Banner" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkAutoHide" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnAutoHideChecked" Unchecked="OnAutoHideChecked">
-                            <TextBlock Text="Auto-hide" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Auto-hide" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkIdleClock" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnIdleClockChecked" Unchecked="OnIdleClockChecked">
-                            <TextBlock Text="Idle Clock" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Idle Clock" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkSubLines" VerticalAlignment="Center" Margin="0,0,8,0"
                                   Checked="OnSubLinesChecked" Unchecked="OnSubLinesChecked">
-                            <TextBlock Text="Sub-lines" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Sub-lines" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                         <CheckBox x:Name="ChkAudioReactive" VerticalAlignment="Center"
                                   Checked="OnAudioReactiveChecked" Unchecked="OnAudioReactiveChecked">
-                            <TextBlock Text="Aura Breath" FontSize="10.5" Foreground="#CBD5E1"/>
+                            <TextBlock Text="Aura Breath" FontSize="10.5" Foreground="#D4D4D8"/>
                         </CheckBox>
                     </StackPanel>
                 </Grid>
@@ -316,17 +332,17 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0" Width="26" Height="26" CornerRadius="6"
-                                    Background="#2A2D3D" BorderBrush="#33FFFFFF" BorderThickness="1"
+                                    Background="#111218" BorderBrush="#33FFFFFF" BorderThickness="1"
                                     ClipToBounds="True" Margin="0,0,8,0" VerticalAlignment="Center">
                                 <Image x:Name="BannerAlbumArt" Stretch="UniformToFill"/>
                             </Border>
 
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock x:Name="BannerMicroLabel" Text="NOW PLAYING" FontSize="8.5" FontWeight="Bold"
-                                           Foreground="#38BDF8" Margin="0,0,0,1"/>
+                                           Foreground="#D4D4D8" Margin="0,0,0,1"/>
                                 <TextBlock x:Name="BannerTrackTitle" Text="Track Title" FontSize="11" FontWeight="Bold"
                                            Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
-                                <TextBlock x:Name="BannerTrackArtist" Text="Artist" FontSize="9.5" Foreground="#94A3B8"
+                                <TextBlock x:Name="BannerTrackArtist" Text="Artist" FontSize="9.5" Foreground="#A1A1AA"
                                            TextTrimming="CharacterEllipsis" MaxWidth="260"/>
                             </StackPanel>
                         </Grid>
@@ -361,13 +377,13 @@
                     <!-- Left Column: Album Art + Meta + Progress Bar -->
                     <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,18,0">
                         <!-- Square Album Art (~150px) with Rounded RectangleGeometry Clip & Ambient Aura Glow -->
-                        <Border x:Name="SideAlbumBorder" Width="150" Height="150" CornerRadius="14" Background="#232635">
+                        <Border x:Name="SideAlbumBorder" Width="150" Height="150" CornerRadius="14" Background="#0E1016">
                             <Border.Effect>
-                                <DropShadowEffect x:Name="SideAlbumAuraGlow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#60A5FA" Opacity="0.55"/>
+                                <DropShadowEffect x:Name="SideAlbumAuraGlow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#A1A1AA" Opacity="0.55"/>
                             </Border.Effect>
                             <Grid>
                                 <Path x:Name="SideFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                      Fill="#64748B" Width="36" Height="36" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                      Fill="#71717A" Width="36" Height="36" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 <Image x:Name="SideAlbumArtImage" Stretch="UniformToFill">
                                     <Image.Clip>
                                         <RectangleGeometry RadiusX="14" RadiusY="14" Rect="0,0,150,150"/>
@@ -375,7 +391,7 @@
                                 </Image>
 
                                 <!-- Quick Media Controls Frosted Pill (Unlocked Hover or Left Alt + Shift) -->
-                                <Border x:Name="SideMediaControlsOverlay" CornerRadius="18" Background="#E00B0E17"
+                                <Border x:Name="SideMediaControlsOverlay" CornerRadius="18" Background="#E00E1016"
                                         BorderBrush="#55FFFFFF" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                                         Padding="7,4" Opacity="0" Visibility="Collapsed">
                                     <Border.Effect>
@@ -397,8 +413,8 @@
                         </Border>
 
                         <TextBlock x:Name="SideTrackTitle" Text="Track Title" FontSize="13" FontWeight="Bold"
-                                   Foreground="#F8FAFC" TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="0,8,0,0"/>
-                        <TextBlock x:Name="SideTrackArtist" Text="Artist" FontSize="11" Foreground="#94A3B8"
+                                   Foreground="#F4F4F5" TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="0,8,0,0"/>
+                        <TextBlock x:Name="SideTrackArtist" Text="Artist" FontSize="11" Foreground="#A1A1AA"
                                    TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="0,2,0,0"/>
 
                         <!-- Progress Bar (strictly 150px Album Art Width) -->
@@ -409,8 +425,8 @@
                         </Border>
 
                         <Grid Width="150" Margin="0,3,0,0">
-                            <TextBlock x:Name="SideCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Left"/>
-                            <TextBlock x:Name="SideTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="SideCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Left"/>
+                            <TextBlock x:Name="SideTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Right"/>
                         </Grid>
                     </StackPanel>
 
@@ -435,13 +451,13 @@
                 <Grid x:Name="AlbumOnlyView" Visibility="Collapsed" Margin="16,12,16,12" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <!-- Square Album Art (~165px) with Ambient Aura Glow -->
-                        <Border x:Name="AlbumOnlyBorder" Width="165" Height="165" CornerRadius="16" Background="#232635" HorizontalAlignment="Center">
+                        <Border x:Name="AlbumOnlyBorder" Width="165" Height="165" CornerRadius="16" Background="#0E1016" HorizontalAlignment="Center">
                             <Border.Effect>
-                                <DropShadowEffect x:Name="AlbumOnlyShadow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#60A5FA" Opacity="0.55"/>
+                                <DropShadowEffect x:Name="AlbumOnlyShadow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#A1A1AA" Opacity="0.55"/>
                             </Border.Effect>
                             <Grid>
                                 <Path x:Name="AlbumOnlyFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                      Fill="#64748B" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                      Fill="#71717A" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 <Image x:Name="AlbumOnlyImage" Stretch="UniformToFill">
                                     <Image.Clip>
                                         <RectangleGeometry RadiusX="16" RadiusY="16" Rect="0,0,165,165"/>
@@ -449,7 +465,7 @@
                                 </Image>
 
                                 <!-- Quick Media Controls Frosted Pill (Unlocked Hover or Left Alt + Shift) -->
-                                <Border x:Name="AlbumOnlyMediaControlsOverlay" CornerRadius="18" Background="#E00B0E17"
+                                <Border x:Name="AlbumOnlyMediaControlsOverlay" CornerRadius="18" Background="#E00E1016"
                                         BorderBrush="#55FFFFFF" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                                         Padding="8,5" Opacity="0" Visibility="Collapsed">
                                     <Border.Effect>
@@ -478,13 +494,13 @@
                         </Border>
 
                         <Grid Width="165" Margin="0,3,0,0">
-                            <TextBlock x:Name="AlbumOnlyCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Left"/>
-                            <TextBlock x:Name="AlbumOnlyTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="AlbumOnlyCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Left"/>
+                            <TextBlock x:Name="AlbumOnlyTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Right"/>
                         </Grid>
 
                         <TextBlock x:Name="AlbumOnlyTrackTitle" Text="Track Title" FontSize="15" FontWeight="Bold"
-                                   Foreground="#F8FAFC" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280" Margin="0,8,0,0"/>
-                        <TextBlock x:Name="AlbumOnlyTrackArtist" Text="Artist" FontSize="12" Foreground="#94A3B8"
+                                   Foreground="#F4F4F5" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280" Margin="0,8,0,0"/>
+                        <TextBlock x:Name="AlbumOnlyTrackArtist" Text="Artist" FontSize="12" Foreground="#A1A1AA"
                                    TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280" Margin="0,2,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -550,12 +566,12 @@
 
         <!-- Snap-to-Edge & Center Alignment Guide Lines (1px, 35% opacity) -->
         <Grid Grid.Row="1" IsHitTestVisible="False">
-            <Border x:Name="SnapGuideLeft" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
-            <Border x:Name="SnapGuideRight" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
-            <Border x:Name="SnapGuideTop" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
-            <Border x:Name="SnapGuideBottom" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Height="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
-            <Border x:Name="SnapGuideCenterX" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
-            <Border x:Name="SnapGuideCenterY" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="1" Background="#38BDF8" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideLeft" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideRight" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideTop" HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideBottom" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Height="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideCenterX" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
+            <Border x:Name="SnapGuideCenterY" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
         </Grid>
 
         <!-- Resize Grip in Bottom-Right Corner (Only visible when unlocked) -->
@@ -563,7 +579,7 @@
                Margin="0,0,10,10" Cursor="SizeNWSE" Visibility="Collapsed" Opacity="0.5">
             <Thumb.Template>
                 <ControlTemplate>
-                    <Path Data="M10,0 L14,0 L14,14 L0,14 L0,10 L10,10 Z M6,6 L10,6 L10,10 L6,10 Z" Fill="#38BDF8" Stretch="Uniform"/>
+                    <Path Data="M10,0 L14,0 L14,14 L0,14 L0,10 L10,10 Z M6,6 L10,6 L10,10 L6,10 Z" Fill="#D4D4D8" Stretch="Uniform"/>
                 </ControlTemplate>
             </Thumb.Template>
         </Thumb>

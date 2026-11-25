@@ -40,6 +40,7 @@ public class AppSettings
 
     // Startup & Onboarding
     public bool HasSeenWelcome { get; set; } = false;
+    public string? LastSeenVersion { get; set; } // Last version whose What's New was shown
     public bool HasCustomPosition { get; set; } = false;
 
     // UX Features

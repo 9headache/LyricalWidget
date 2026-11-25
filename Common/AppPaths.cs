@@ -18,65 +18,26 @@ public static class AppPaths
 
     private static string ResolveBaseDirectory()
     {
-        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string appDir = Path.Combine(localAppData, "LyricalWidget");
-
+        // Never resolve next to the .exe or the working directory: state stored there travels with
+        // zipped/shared copies of the app and makes new users look like returning ones.
         try
         {
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(localAppData))
+            {
+                throw new DirectoryNotFoundException("LocalAppData could not be resolved.");
+            }
+
+            string appDir = Path.Combine(localAppData, "LyricalWidget");
             EnsureSubdirectories(appDir);
-            MigrateLegacySettingsIfNeeded(appDir);
             return appDir;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to initialize LocalAppData directory: {ex.Message}");
-            string fallbackCurrent = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
-            EnsureSubdirectories(fallbackCurrent);
-            return fallbackCurrent;
-        }
-    }
-
-    private static void MigrateLegacySettingsIfNeeded(string targetBaseDir)
-    {
-        try
-        {
-            string targetSettingsFile = Path.Combine(targetBaseDir, "settings.json");
-            if (File.Exists(targetSettingsFile))
-            {
-                return; // Already exists, no migration needed
-            }
-
-            // Search potential previous local locations
-            string[] candidateLocations = new[]
-            {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json"),
-                Path.Combine(Directory.GetCurrentDirectory(), "settings.json")
-            };
-
-            foreach (var candidate in candidateLocations)
-            {
-                try
-                {
-                    if (File.Exists(candidate) && !string.Equals(Path.GetFullPath(candidate), Path.GetFullPath(targetSettingsFile), StringComparison.OrdinalIgnoreCase))
-                    {
-                        var info = new FileInfo(candidate);
-                        if (info.Length > 0)
-                        {
-                            File.Copy(candidate, targetSettingsFile, overwrite: false);
-                            System.Diagnostics.Debug.WriteLine($"Migrated settings from {candidate} to {targetSettingsFile}");
-                            break;
-                        }
-                    }
-                }
-                catch
-                {
-                    // Ignore candidate read errors
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Settings migration check failed: {ex.Message}");
+            string fallbackDir = Path.Combine(Path.GetTempPath(), "LyricalWidget");
+            EnsureSubdirectories(fallbackDir);
+            return fallbackDir;
         }
     }
 

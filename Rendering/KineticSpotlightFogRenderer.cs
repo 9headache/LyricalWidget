@@ -45,8 +45,8 @@ public sealed class KineticSpotlightFogRenderer
     private BitmapSource? _cachedSharpArt;
     private BitmapSource? _cachedBlurredArt;
 
-    private Color _boostedAccentColor = Color.FromRgb(0x38, 0xBD, 0xF8);
-    private Color _mutedAccentColor = Color.FromArgb(170, 0x38, 0xBD, 0xF8);
+    private Color _boostedAccentColor = Color.FromRgb(0xD4, 0xD4, 0xD8);
+    private Color _mutedAccentColor = Color.FromArgb(170, 0xD4, 0xD4, 0xD8);
 
     private string _backdropMode = "HdArtwork";
     private double _artworkGroupOpacity = 1.0;

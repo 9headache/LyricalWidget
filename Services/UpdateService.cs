@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using LyricalWidget.Common;
@@ -23,6 +24,15 @@ public sealed class UpdateInfo
 }
 
 public sealed record UpdateCheckResult(UpdateInfo? Update, bool IsUpToDate, string? ErrorMessage);
+
+public enum UpdateStage
+{
+    Downloading,
+    Preparing,
+    Restarting
+}
+
+public sealed record UpdateProgress(UpdateStage Stage, long BytesReceived = 0, long? TotalBytes = null);
 
 /// <summary>
 /// Checks for new releases on GitHub and performs in-place application updates.
@@ -134,7 +144,7 @@ public static class UpdateService
         }
     }
 
-    public static async Task<bool> DownloadAndApplyUpdateAsync(UpdateInfo update)
+    public static async Task<bool> DownloadAndApplyUpdateAsync(UpdateInfo update, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
     {
         string? currentExe = Environment.ProcessPath;
         string currentDir = !string.IsNullOrEmpty(currentExe) ? Path.GetDirectoryName(currentExe)! : "";
@@ -157,38 +167,13 @@ public static class UpdateService
 
         string newExePath = Path.Combine(tempDir, "LyricalWidget.new.exe");
 
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("LyricalWidget");
+        string downloadPath = update.IsZip ? Path.Combine(tempDir, "update.zip") : newExePath;
+        await DownloadFileAsync(update.DownloadUrl, downloadPath, progress, cancellationToken);
 
+        progress.Report(new UpdateProgress(UpdateStage.Preparing));
         if (update.IsZip)
         {
-            string zipPath = Path.Combine(tempDir, "update.zip");
-            using (var response = await client.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                await using var stream = await response.Content.ReadAsStreamAsync();
-                await using var fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await stream.CopyToAsync(fs);
-            }
-
-            using var archive = ZipFile.OpenRead(zipPath);
-            var entry = archive.Entries.FirstOrDefault(e => e.Name.Equals("LyricalWidget.exe", StringComparison.OrdinalIgnoreCase))
-                        ?? archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
-            if (entry == null)
-            {
-                throw new FileNotFoundException("LyricalWidget.exe was not found inside the update package.");
-            }
-            entry.ExtractToFile(newExePath, overwrite: true);
-        }
-        else
-        {
-            using (var response = await client.GetAsync(update.DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                await using var stream = await response.Content.ReadAsStreamAsync();
-                await using var fs = new FileStream(newExePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await stream.CopyToAsync(fs);
-            }
+            await Task.Run(() => ExtractExe(downloadPath, newExePath), cancellationToken);
         }
 
         var fi = new FileInfo(newExePath);
@@ -204,6 +189,7 @@ set PID=%1
 set SOURCE=%2
 set TARGET=%3
 set TEMPDIR=%4
+set TRIES=0
 
 :waitloop
 tasklist /fi ""PID eq %PID%"" 2>nul | find ""%PID%"" >nul
@@ -214,22 +200,29 @@ if not errorlevel 1 (
 
 :retrymove
 move /y %SOURCE% %TARGET% >nul 2>nul
-if errorlevel 1 (
-    timeout /t 1 /nobreak >nul
-    goto retrymove
-)
+if not errorlevel 1 goto launch
+set /a TRIES+=1
+if %TRIES% geq 30 goto launch
+timeout /t 1 /nobreak >nul
+goto retrymove
 
+:launch
 start """" %TARGET%
 rd /s /q %TEMPDIR% 2>nul
 exit
 ";
-        await File.WriteAllTextAsync(cmdPath, cmdContent);
+        await File.WriteAllTextAsync(cmdPath, cmdContent, cancellationToken);
+
+        // Leave the last stage on screen long enough to be read before the window disappears
+        progress.Report(new UpdateProgress(UpdateStage.Restarting));
+        await Task.Delay(1200, cancellationToken);
 
         int currentPid = Environment.ProcessId;
         var psi = new ProcessStartInfo
         {
             FileName = "cmd.exe",
-            Arguments = $"/c \"{cmdPath}\" {currentPid} \"{newExePath}\" \"{currentExe}\" \"{tempDir}\"",
+            // cmd /c strips the outermost quotes, so the whole command line needs its own pair
+            Arguments = $"/c \"\"{cmdPath}\" {currentPid} \"{newExePath}\" \"{currentExe}\" \"{tempDir}\"\"",
             UseShellExecute = false,
             CreateNoWindow = true
         };
@@ -238,6 +231,89 @@ exit
         Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
         return true;
     }
+
+    private static async Task DownloadFileAsync(string url, string path, IProgress<UpdateProgress> progress, CancellationToken cancellationToken)
+    {
+        // HttpClient.Timeout only covers the response headers here, so stalled reads get their own timeout
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("LyricalWidget");
+
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        long? total = response.Content.Headers.ContentLength;
+        long received = 0;
+        progress.Report(new UpdateProgress(UpdateStage.Downloading, 0, total));
+
+        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+
+        byte[] buffer = new byte[81920];
+        var sinceReport = Stopwatch.StartNew();
+        while (true)
+        {
+            int read;
+            readCts.CancelAfter(TimeSpan.FromSeconds(30));
+            try
+            {
+                read = await stream.ReadAsync(buffer, readCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException("The download stopped responding.");
+            }
+            if (read == 0) break;
+
+            await fs.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            received += read;
+
+            if (sinceReport.ElapsedMilliseconds >= 80)
+            {
+                sinceReport.Restart();
+                progress.Report(new UpdateProgress(UpdateStage.Downloading, received, total));
+            }
+        }
+
+        if (total is long expected && received != expected)
+        {
+            throw new InvalidOperationException($"The download was incomplete ({received} of {expected} bytes). Try again.");
+        }
+        progress.Report(new UpdateProgress(UpdateStage.Downloading, received, total));
+    }
+
+    private static void ExtractExe(string zipPath, string newExePath)
+    {
+        using var archive = ZipFile.OpenRead(zipPath);
+        var entry = archive.Entries.FirstOrDefault(e => e.Name.Equals("LyricalWidget.exe", StringComparison.OrdinalIgnoreCase))
+                    ?? archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
+        if (entry == null)
+        {
+            throw new FileNotFoundException("LyricalWidget.exe was not found inside the update package.");
+        }
+        entry.ExtractToFile(newExePath, overwrite: true);
+    }
+
+#if DEBUG
+    /// <summary>
+    /// Debug-only stand-in for the real updater: plays every stage without downloading or restarting.
+    /// </summary>
+    public static async Task<bool> SimulateUpdateAsync(IProgress<UpdateProgress> progress, bool fail, CancellationToken cancellationToken)
+    {
+        const long total = 40_370_176; // 38.5 MB
+        for (int i = 0; i <= 60; i++)
+        {
+            progress.Report(new UpdateProgress(UpdateStage.Downloading, total * i / 60, total));
+            if (fail && i == 22) throw new HttpRequestException("Simulated failure");
+            await Task.Delay(80, cancellationToken);
+        }
+        progress.Report(new UpdateProgress(UpdateStage.Preparing));
+        await Task.Delay(1200, cancellationToken);
+        progress.Report(new UpdateProgress(UpdateStage.Restarting));
+        await Task.Delay(1500, cancellationToken);
+        return false;
+    }
+#endif
 
     public static bool TryParseCleanVersion(string raw, out Version version)
     {

@@ -66,7 +66,7 @@ public partial class FullscreenVibeWindow : Window
     {
         ActiveColor = Colors.White,
         InactiveColor = Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF),
-        AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+        AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
     };
 
     private bool _isPortraitMode = false;
@@ -90,7 +90,7 @@ public partial class FullscreenVibeWindow : Window
         {
             ActiveColor = Colors.White,
             InactiveColor = Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), // #66FFFFFF when OFF
-            AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+            AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
         };
     }
 

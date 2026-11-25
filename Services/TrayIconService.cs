@@ -54,6 +54,7 @@ public class TrayIconService : IDisposable
     public event Action<bool>? GamingModeToggled;
     public event Action<int>? FpsCapToggled;
     public event Action? ShowStartupGuideRequested;
+    public event Action? WhatsNewRequested;
     public event Action? CheckForUpdatesRequested;
     public event Action? ResetPositionRequested;
     public event Action? ReportBugRequested;
@@ -72,10 +73,10 @@ public class TrayIconService : IDisposable
 
         var contextMenu = new WinForms.ContextMenuStrip();
 
-        _lockMenuItem = new WinForms.ToolStripMenuItem("Unlock Overlay (Alt+L)", null, (s, e) => ToggleLockRequested?.Invoke());
-        _visibilityMenuItem = new WinForms.ToolStripMenuItem("Hide Overlay (Alt+H)", null, (s, e) => ToggleVisibilityRequested?.Invoke());
-        _fullscreenVibeMenuItem = new WinForms.ToolStripMenuItem("Fullscreen Vibe Mode (Alt+F)", null, (s, e) => ToggleFullscreenVibeRequested?.Invoke());
-        _reconnectMenuItem = new WinForms.ToolStripMenuItem("Force Refresh / Reconnect (Alt+R)", null, (s, e) => ForceReconnectRequested?.Invoke());
+        _lockMenuItem = new WinForms.ToolStripMenuItem("Unlock Overlay", null, (s, e) => ToggleLockRequested?.Invoke()) { ShortcutKeyDisplayString = "Alt+L" };
+        _visibilityMenuItem = new WinForms.ToolStripMenuItem("Hide Overlay", null, (s, e) => ToggleVisibilityRequested?.Invoke()) { ShortcutKeyDisplayString = "Alt+H" };
+        _fullscreenVibeMenuItem = new WinForms.ToolStripMenuItem("Fullscreen Vibe Mode", null, (s, e) => ToggleFullscreenVibeRequested?.Invoke()) { ShortcutKeyDisplayString = "Alt+F" };
+        _reconnectMenuItem = new WinForms.ToolStripMenuItem("Refresh Lyrics", null, (s, e) => ForceReconnectRequested?.Invoke()) { ShortcutKeyDisplayString = "Alt+R" };
 
         var modeSubMenu = new WinForms.ToolStripMenuItem("Display Mode");
         _modeLyricsOnly = new WinForms.ToolStripMenuItem("Lyrics Only", null, (s, e) => DisplayModeSelected?.Invoke("LyricsOnly"));
@@ -226,9 +227,10 @@ public class TrayIconService : IDisposable
             ClearLyricsCacheRequested?.Invoke();
         });
 
-        var supportSubMenu = new WinForms.ToolStripMenuItem("Release & Support");
+        var supportSubMenu = new WinForms.ToolStripMenuItem("Release && Support");
         var checkForUpdatesItem = new WinForms.ToolStripMenuItem("Check for Updates...", null, (s, e) => CheckForUpdatesRequested?.Invoke());
-        var showGuideItem = new WinForms.ToolStripMenuItem("Show Startup Guide", null, (s, e) => ShowStartupGuideRequested?.Invoke());
+        var showGuideItem = new WinForms.ToolStripMenuItem("Quick Guide", null, (s, e) => ShowStartupGuideRequested?.Invoke());
+        var whatsNewItem = new WinForms.ToolStripMenuItem("What's New", null, (s, e) => WhatsNewRequested?.Invoke());
         var resetPosItem = new WinForms.ToolStripMenuItem("Reset Overlay Position", null, (s, e) => ResetPositionRequested?.Invoke());
         var reportBugItem = new WinForms.ToolStripMenuItem("Report a Bug...", null, (s, e) => ReportBugRequested?.Invoke());
         var versionStatusItem = new WinForms.ToolStripMenuItem(AppVersionInfo.DisplayVersion)
@@ -237,7 +239,6 @@ public class TrayIconService : IDisposable
         };
 
         supportSubMenu.DropDownItems.Add(checkForUpdatesItem);
-        supportSubMenu.DropDownItems.Add(showGuideItem);
         supportSubMenu.DropDownItems.Add(resetPosItem);
         supportSubMenu.DropDownItems.Add(new WinForms.ToolStripSeparator());
         supportSubMenu.DropDownItems.Add(reportBugItem);
@@ -265,12 +266,15 @@ public class TrayIconService : IDisposable
         contextMenu.Items.Add(_gamingModeMenuItem);
         contextMenu.Items.Add(_fpsCapMenuItem);
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
+        contextMenu.Items.Add(showGuideItem);
+        contextMenu.Items.Add(whatsNewItem);
         contextMenu.Items.Add(supportSubMenu);
         contextMenu.Items.Add(openFolderItem);
         contextMenu.Items.Add(clearLyricsCacheItem);
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
         contextMenu.Items.Add(exitItem);
 
+        ChromeMenuRenderer.Apply(contextMenu);
         _notifyIcon.ContextMenuStrip = contextMenu;
         _notifyIcon.DoubleClick += (s, e) => ToggleVisibilityRequested?.Invoke();
     }
@@ -284,12 +288,13 @@ public class TrayIconService : IDisposable
     public void UpdateLockState(bool isLocked)
     {
         _isLocked = isLocked;
-        _lockMenuItem.Text = isLocked ? $"Unlock Overlay ({_currentLockShortcut})" : $"Lock Overlay ({_currentLockShortcut})";
+        _lockMenuItem.Text = isLocked ? "Unlock Overlay" : "Lock Overlay";
+        _lockMenuItem.ShortcutKeyDisplayString = _currentLockShortcut == "(None)" ? string.Empty : _currentLockShortcut;
     }
 
     public void UpdateVisibilityState(bool isVisible)
     {
-        _visibilityMenuItem.Text = isVisible ? "Hide Overlay (Alt+H)" : "Show Overlay (Alt+H)";
+        _visibilityMenuItem.Text = isVisible ? "Hide Overlay" : "Show Overlay";
     }
 
     public void UpdateDisplayModeState(string mode)

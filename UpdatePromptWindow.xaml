@@ -10,151 +10,143 @@
         WindowStartupLocation="CenterScreen"
         SizeToContent="WidthAndHeight"
         UseLayoutRounding="True"
-        SnapsToDevicePixels="True">
+        SnapsToDevicePixels="True"
+        FontFamily="Inter, Segoe UI Variable Text, Segoe UI">
 
     <Window.Resources>
-        <LinearGradientBrush x:Key="SpecularGlassBorder" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#70FFFFFF" Offset="0.0"/>
-            <GradientStop Color="#4038BDF8" Offset="0.45"/>
-            <GradientStop Color="#18FFFFFF" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <Style x:Key="CloseButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Cursor" Value="Hand"/>
+        <Style x:Key="ChromeProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" CornerRadius="14" Background="#1FFFFFFF" BorderBrush="#25FFFFFF" BorderThickness="1">
-                            <TextBlock Text="✕" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#33FF3B6B"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#80FF3B6B"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border x:Name="PART_Track" CornerRadius="4" Background="#181A22" BorderBrush="#17FFFFFF" BorderThickness="1"/>
+                            <Border x:Name="PART_Indicator" CornerRadius="4" HorizontalAlignment="Left">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#52525B" Offset="0.0"/>
+                                        <GradientStop Color="#A1A1AA" Offset="0.45"/>
+                                        <GradientStop Color="#F4F4F5" Offset="0.8"/>
+                                        <GradientStop Color="#FFFFFF" Offset="1.0"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="StageText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#71717A"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="StageMark" TargetType="TextBlock">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#71717A"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
-        <Border CornerRadius="16" Width="440" Background="#121520" BorderBrush="{StaticResource SpecularGlassBorder}" BorderThickness="1.5">
-            <Grid Margin="22,18,22,20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/> <!-- Header -->
-                    <RowDefinition Height="Auto"/> <!-- Separator -->
-                    <RowDefinition Height="Auto"/> <!-- Release Notes -->
-                    <RowDefinition Height="Auto"/> <!-- Status -->
-                    <RowDefinition Height="Auto"/> <!-- Actions -->
-                </Grid.RowDefinitions>
+    <Grid Margin="32">
+        <!-- Shadow on its own layer so text is not rasterized by the effect -->
+        <Border CornerRadius="20" Background="#07080B">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="32" Direction="270" ShadowDepth="4" Color="#000000" Opacity="0.75"/>
+            </Border.Effect>
+        </Border>
 
-                <!-- Row 0: Header -->
-                <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+        <Border CornerRadius="20" Width="460" Background="#07080B" BorderBrush="#1CFFFFFF" BorderThickness="1">
+            <Grid>
+                <Border VerticalAlignment="Top" Height="1" Margin="24,0,24,0" Background="{StaticResource ChromeSheenBrush}"/>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="NEW VERSION AVAILABLE" FontSize="10" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,4"/>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="TxtVersionCompare" Text="v2.0.002 → v2.0.003" FontSize="16" FontWeight="Bold" Foreground="#F8FAFC"/>
-                            <Border CornerRadius="6" Background="#2638BDF8" BorderBrush="#8038BDF8" BorderThickness="1"
-                                    Padding="6,1.5" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="UPDATE READY" FontSize="9.5" FontWeight="Bold" Foreground="#38BDF8"/>
+                <Grid Margin="24,22,24,22">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Header -->
+                        <RowDefinition Height="184"/>  <!-- Notes / Progress / Error -->
+                        <RowDefinition Height="Auto"/> <!-- Actions -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock x:Name="TxtHeading" Text="Update available" FontSize="20" FontWeight="Bold"
+                                       Foreground="{StaticResource ChromeTextBrush}"/>
+                            <Border CornerRadius="9" Background="#111218" BorderBrush="#1CFFFFFF" BorderThickness="1"
+                                    Padding="8,2" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                <TextBlock x:Name="TxtVersionCompare" FontFamily="JetBrains Mono, Cascadia Mono, Consolas"
+                                           FontSize="11" FontWeight="SemiBold" Foreground="#D4D4D8"/>
                             </Border>
                         </StackPanel>
-                    </StackPanel>
 
-                    <Button Grid.Column="1" Style="{StaticResource CloseButtonStyle}" Click="OnCloseClicked" VerticalAlignment="Top"/>
-                </Grid>
+                        <Button x:Name="BtnClose" Grid.Column="1" Style="{StaticResource ChromeCloseButton}" Click="OnCloseClicked" VerticalAlignment="Top"/>
+                    </Grid>
 
-                <!-- Row 1: Separator -->
-                <Border Grid.Row="1" Height="1" Background="#1AFFFFFF" Margin="0,14,0,14"/>
+                    <!-- Row 1a: Release Notes -->
+                    <DockPanel x:Name="NotesPanel" Grid.Row="1">
+                        <TextBlock DockPanel.Dock="Top" Text="Release notes" FontSize="11.5" FontWeight="SemiBold" Foreground="#A1A1AA" Margin="2,0,0,8"/>
+                        <TextBox x:Name="TxtReleaseNotes" Style="{StaticResource ChromeTextBox}" TextWrapping="Wrap" IsReadOnly="True"
+                                 VerticalScrollBarVisibility="Auto" Padding="10" FontSize="12"/>
+                    </DockPanel>
 
-                <!-- Row 2: Release Notes -->
-                <StackPanel Grid.Row="2">
-                    <TextBlock Text="RELEASE NOTES" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="1,0,0,6"/>
-                    <TextBox x:Name="TxtReleaseNotes" Height="140" TextWrapping="Wrap" IsReadOnly="True"
-                             VerticalScrollBarVisibility="Auto" Background="#161924" Foreground="#F8FAFC"
-                             BorderBrush="#3338BDF8" BorderThickness="1" Padding="10" FontSize="12"
-                             FontFamily="Segoe UI" SelectionBrush="#38BDF8" CaretBrush="#38BDF8">
-                        <TextBox.Resources>
-                            <Style TargetType="{x:Type Border}">
-                                <Setter Property="CornerRadius" Value="8"/>
-                            </Style>
-                        </TextBox.Resources>
-                    </TextBox>
-                </StackPanel>
+                    <!-- Row 1b: Live Progress -->
+                    <Border x:Name="ProgressPanel" Grid.Row="1" Visibility="Collapsed" CornerRadius="14" Padding="18,0"
+                            Background="#0E1016" BorderBrush="#17FFFFFF" BorderThickness="1">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtStatus" Text="Downloading update..." FontSize="12.5" FontWeight="SemiBold" Foreground="#E4E4E7"
+                                       AutomationProperties.LiveSetting="Polite" Margin="0,0,0,10"/>
+                            <ProgressBar x:Name="BarProgress" Style="{StaticResource ChromeProgressBar}" AutomationProperties.Name="Update progress"/>
 
-                <!-- Row 3: Status Message -->
-                <TextBlock x:Name="TxtStatus" Grid.Row="3" Margin="0,10,0,0" Text="" FontSize="11" Foreground="#38BDF8"
-                           HorizontalAlignment="Center" Visibility="Collapsed"/>
+                            <StackPanel Margin="0,18,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="MarkDownload" Style="{StaticResource StageMark}"/>
+                                    <TextBlock x:Name="StageDownload" Text="Download update" Style="{StaticResource StageText}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <TextBlock x:Name="MarkPrepare" Style="{StaticResource StageMark}"/>
+                                    <TextBlock x:Name="StagePrepare" Text="Extract &amp; prepare" Style="{StaticResource StageText}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <TextBlock x:Name="MarkRestart" Style="{StaticResource StageMark}"/>
+                                    <TextBlock x:Name="StageRestart" Text="Restart LyricalWidget" Style="{StaticResource StageText}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
-                <!-- Row 4: Action Buttons -->
-                <Grid Grid.Row="4" Margin="0,18,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.4*"/>
-                        <ColumnDefinition Width="1.1*"/>
-                        <ColumnDefinition Width="0.8*"/>
-                    </Grid.ColumnDefinitions>
+                    <!-- Row 1c: Error -->
+                    <Border x:Name="ErrorPanel" Grid.Row="1" Visibility="Collapsed" CornerRadius="14" Padding="18,0"
+                            Background="#0E1016" BorderBrush="#17FFFFFF" BorderThickness="1">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtErrorMessage" FontSize="12.5" Foreground="#E4E4E7" TextWrapping="Wrap"
+                                       TextTrimming="CharacterEllipsis" MaxHeight="90" AutomationProperties.LiveSetting="Assertive"/>
+                            <TextBlock Text="Your current version was not changed." FontSize="11.5" Foreground="#A1A1AA" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
 
-                    <!-- Button 1: Update & Restart (Primary) -->
-                    <Button x:Name="BtnUpdate" Grid.Column="0" Margin="0,0,6,0" Height="34" Cursor="Hand" Click="OnUpdateAndRestartClicked">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="b" CornerRadius="10" Background="#3538BDF8" BorderBrush="#38BDF8" BorderThickness="1">
-                                    <TextBlock x:Name="TxtBtn" Text="Update &amp; Restart" FontSize="11.5" FontWeight="Bold" Foreground="#38BDF8"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="b" Property="Background" Value="#5538BDF8"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <!-- Row 2: Actions -->
+                    <Grid Grid.Row="2" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Button 2: View on GitHub -->
-                    <Button x:Name="BtnGitHub" Grid.Column="1" Margin="0,0,6,0" Height="34" Cursor="Hand" Click="OnViewOnGitHubClicked">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="b" CornerRadius="10" Background="#1E2335" BorderBrush="#33FFFFFF" BorderThickness="1">
-                                    <TextBlock Text="View on GitHub" FontSize="11.5" FontWeight="SemiBold" Foreground="#E2E8F0"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="b" Property="Background" Value="#302D45"/>
-                                        <Setter TargetName="b" Property="BorderBrush" Value="#66FFFFFF"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-
-                    <!-- Button 3: Later -->
-                    <Button x:Name="BtnLater" Grid.Column="2" Height="34" Cursor="Hand" Click="OnCloseClicked">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="b" CornerRadius="10" Background="#1E2335" BorderBrush="#33FFFFFF" BorderThickness="1">
-                                    <TextBlock Text="Later" FontSize="11.5" FontWeight="SemiBold" Foreground="#94A3B8"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="b" Property="Background" Value="#302D45"/>
-                                        <Setter TargetName="b" Property="BorderBrush" Value="#66FFFFFF"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                        <Button x:Name="BtnGitHub" Grid.Column="0" Content="View on GitHub" Style="{StaticResource ChromeSecondaryButton}" Click="OnViewOnGitHubClicked"/>
+                        <Button x:Name="BtnLater" Grid.Column="2" Content="Later" Style="{StaticResource ChromeSecondaryButton}" Click="OnCloseClicked"/>
+                        <Button x:Name="BtnUpdate" Grid.Column="3" Content="Update Now" Style="{StaticResource ChromePrimaryButton}" Margin="8,0,0,0" Click="OnUpdateNowClicked"/>
+                    </Grid>
                 </Grid>
             </Grid>
         </Border>

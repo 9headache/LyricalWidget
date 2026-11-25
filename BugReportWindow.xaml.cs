@@ -111,14 +111,14 @@ public partial class BugReportWindow : Window
             {
                 string originalText = textBlock.Text;
                 textBlock.Text = "Copied!";
-                textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x4A, 0xDE, 0x80)); // Light green
+                textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
 
                 Task.Delay(1800).ContinueWith(_ =>
                 {
                     Dispatcher.Invoke(() =>
                     {
                         textBlock.Text = originalText;
-                        textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0));
+                        textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
                     });
                 });
             }

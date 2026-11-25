@@ -26,14 +26,14 @@ namespace LyricalWidget;
 public partial class MainWindow : Window
 {
     private bool _activeBackdropIsA = true;
-    private Color _currentAccentColor = Color.FromRgb(0x60, 0xA5, 0xFA);
+    private Color _currentAccentColor = Color.FromRgb(0xD4, 0xD4, 0xD8);
     private double _currentBassEnergy = 0.0;
 
     private ThemedLyricColors _currentThemedLyricColors = new()
     {
         ActiveColor = Colors.White,
         InactiveColor = Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF),
-        AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+        AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
     };
     private VibePalette _currentPalette = VibePalette.Default();
 
@@ -165,9 +165,9 @@ public partial class MainWindow : Window
 
     private void UpdateToolbarButtons()
     {
-        var activeBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x38, 0xBD, 0xF8));
+        var activeBrush = new SolidColorBrush(Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF));
         var defaultBrush = new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
-        var activeBorder = new SolidColorBrush(Color.FromRgb(0x38, 0xBD, 0xF8));
+        var activeBorder = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD8));
         var defaultBorder = new SolidColorBrush(Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF));
 
         BtnModeLyricsOnly.Background = _settings.DisplayMode == "LyricsOnly" ? activeBrush : defaultBrush;
@@ -586,11 +586,18 @@ public partial class MainWindow : Window
             RebuildLyricsViews();
             ApplyDisplayModeAndTheme();
 
+            var previous = _mediaService.CurrentTrack;
+            _lyricsService.RequestRefetch(previous);
+
             await _mediaService.ForceReconnectAsync();
 
             var current = _mediaService.CurrentTrack;
             if (current != null)
             {
+                if (current.CacheKey != previous.CacheKey)
+                {
+                    _lyricsService.RequestRefetch(current);
+                }
                 OnTrackChanged(this, current);
             }
         }
@@ -774,7 +781,7 @@ public partial class MainWindow : Window
         {
             ActiveColor = Colors.White,
             InactiveColor = Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), // #66FFFFFF when OFF
-            AccentGlowColor = Color.FromRgb(0x60, 0xA5, 0xFA)
+            AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
         };
     }
 

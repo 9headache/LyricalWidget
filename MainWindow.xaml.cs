@@ -34,6 +34,11 @@ public partial class MainWindow : Window
     private bool _isFullscreenActive = false;
     public bool IsFullscreenActive => _isFullscreenActive;
     private TrayIconService? _trayService;
+    private WelcomeWindow? _guideWindow;
+    private UpdatePromptWindow? _updatePrompt;
+    private AppDialogWindow? _updateStatusDialog;
+    private WhatsNewWindow? _whatsNewWindow;
+    private bool _isCheckingForUpdates = false;
 
     private LrcDocument _currentLyrics = LrcDocument.Empty();
     private long _trackSequenceId = 0;
@@ -82,8 +87,15 @@ public partial class MainWindow : Window
             {
                 Dispatcher.Invoke(() =>
                 {
+                    if (_isClosing) return;
                     _settings.HasSeenWelcome = true;
-                    if (IsFullscreenActive) return;
+                    _settings.LastSeenVersion = AppVersionInfo.Version;
+                    SettingsService.Save(_settings);
+                    if (IsFullscreenActive)
+                    {
+                        Opacity = 1.0;
+                        return;
+                    }
                     if (!_settings.HasCustomPosition)
                     {
                         // Cleanly center on primary monitor where welcome dissolved
@@ -105,6 +117,7 @@ public partial class MainWindow : Window
                     BeginAnimation(OpacityProperty, fadeIn);
                 });
             });
+            _guideWindow = welcome;
             welcome.Show();
         }
         else
@@ -114,7 +127,12 @@ public partial class MainWindow : Window
             {
                 Dispatcher.Invoke(() =>
                 {
-                    if (IsFullscreenActive) return;
+                    if (_isClosing) return;
+                    if (IsFullscreenActive)
+                    {
+                        Opacity = 1.0;
+                        return;
+                    }
                     EnsureTopmost();
                     ApplyEffectiveVisibility();
 
@@ -123,6 +141,13 @@ public partial class MainWindow : Window
                         EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
                     };
                     BeginAnimation(OpacityProperty, fadeIn);
+
+                    if (_settings.LastSeenVersion != AppVersionInfo.Version)
+                    {
+                        _settings.LastSeenVersion = AppVersionInfo.Version;
+                        SettingsService.Save(_settings);
+                        ShowWhatsNew();
+                    }
                 });
             });
             splash.Show();
@@ -142,6 +167,17 @@ public partial class MainWindow : Window
             _trayService.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
         }
 
+#if DEBUG
+        string[] args = Environment.GetCommandLineArgs();
+        bool previewFail = Array.IndexOf(args, "--preview-update-fail") >= 0;
+        if (previewFail || Array.IndexOf(args, "--preview-update") >= 0)
+        {
+            ShowUpdatePrompt(
+                new UpdateInfo { TagName = "v2.2.0", HtmlUrl = AppVersionInfo.RepositoryUrl, Body = "Preview only: nothing is downloaded or restarted." },
+                (update, progress, ct) => UpdateService.SimulateUpdateAsync(progress, previewFail, ct));
+        }
+#endif
+
         // Non-blocking background update check ~5 seconds after startup
         _ = Task.Run(async () =>
         {
@@ -153,9 +189,7 @@ public partial class MainWindow : Window
                 {
                     if (!_isClosing)
                     {
-                        var prompt = new UpdatePromptWindow(result.Update);
-                        prompt.Owner = this;
-                        prompt.Show();
+                        ShowUpdatePrompt(result.Update);
                     }
                 });
             }
@@ -455,8 +489,14 @@ public partial class MainWindow : Window
 
     public void ShowStartupGuide()
     {
-        var guide = new WelcomeWindow(isFirstBoot: true, isReplay: true);
-        guide.Show();
+        if (_guideWindow != null && _guideWindow.IsVisible)
+        {
+            _guideWindow.Activate();
+            return;
+        }
+
+        _guideWindow = new WelcomeWindow(isFirstBoot: true, isReplay: true);
+        _guideWindow.Show();
     }
 
 
@@ -476,37 +516,74 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ShowUpdatePrompt(UpdateInfo update, UpdateRunner? runner = null)
+    {
+        // One prompt at a time: two downloads would share the same temp folder
+        if (_updatePrompt != null && _updatePrompt.IsVisible)
+        {
+            _updatePrompt.Activate();
+            return;
+        }
+
+        _updatePrompt = new UpdatePromptWindow(update, runner) { Owner = this };
+        _updatePrompt.Show();
+    }
+
+    public void ShowWhatsNew()
+    {
+        if (_whatsNewWindow != null && _whatsNewWindow.IsVisible)
+        {
+            _whatsNewWindow.Activate();
+            return;
+        }
+
+        _whatsNewWindow = new WhatsNewWindow();
+        _whatsNewWindow.Show();
+    }
+
+    private void ShowUpdateStatus(AppDialogWindow dialog)
+    {
+        _updateStatusDialog?.Close();
+        _updateStatusDialog = dialog;
+        dialog.Show();
+    }
+
     private async void OnCheckForUpdatesRequested()
     {
+        if (_isCheckingForUpdates) return;
+        _isCheckingForUpdates = true;
         try
         {
             var result = await UpdateService.CheckForUpdateAsync();
+            if (_isClosing) return;
             if (result.Update != null)
             {
-                var prompt = new UpdatePromptWindow(result.Update);
-                prompt.Owner = this;
-                prompt.Show();
+                ShowUpdatePrompt(result.Update);
             }
             else if (result.IsUpToDate)
             {
-                MessageBox.Show(
-                    $"You're on the latest version ({AppVersionInfo.DisplayVersion}).",
-                    "Check for Updates",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                ShowUpdateStatus(new AppDialogWindow(
+                    AppDialogGlyph.Check,
+                    "You're running the latest build.",
+                    $"LyricalWidget v{AppVersionInfo.Version} is already up to date — nothing to install.",
+                    "View What's New",
+                    ShowWhatsNew));
             }
             else
             {
-                MessageBox.Show(
-                    $"Could not check for updates: {result.ErrorMessage}",
-                    "Check for Updates",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowUpdateStatus(new AppDialogWindow(
+                    AppDialogGlyph.Info,
+                    "Couldn't check for updates.",
+                    $"Check your internet connection and try again.\n\n{result.ErrorMessage}"));
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Update check error: {ex.Message}");
+        }
+        finally
+        {
+            _isCheckingForUpdates = false;
         }
     }
 
