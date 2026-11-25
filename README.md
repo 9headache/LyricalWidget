@@ -46,11 +46,6 @@ https://github.com/user-attachments/assets/7f95c43a-cab8-44f3-9e3a-1ea7145f7861
 | :---: | :---: |
 | <img src="https://github.com/user-attachments/assets/f31d2ca6-1c87-4d2f-911d-25e8951b5d64" width="420" alt="Transparent Idle Clock" /> | <img src="https://github.com/user-attachments/assets/d4e1497d-ebc1-444f-b896-2f01e150d836" width="420" alt="Glassify Idle Clock" /> |
 
-### Fullscreen Split Mode
-
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/b8e4e8e0-975b-47c1-b9cd-44548b2acf0b" width="850" alt="Fullscreen Split Mode" />
-</div>
 
 ---
 
