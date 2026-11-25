@@ -100,7 +100,7 @@
                         <!-- App Icon -->
                         <Border Grid.Column="0" Width="38" Height="38" CornerRadius="10" Background="#1F2332"
                                 BorderBrush="#33FFFFFF" BorderThickness="1" Margin="0,0,14,0" VerticalAlignment="Center">
-                            <Image x:Name="ImgFullIcon" Stretch="UniformToFill" Margin="4"/>
+                            <Image x:Name="ImgFullIcon" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Margin="4"/>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -258,7 +258,7 @@
 
                     <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8" Background="#1F2332"
                             BorderBrush="#33FFFFFF" BorderThickness="1" Margin="0,0,12,0" VerticalAlignment="Center">
-                        <Image x:Name="ImgSplashIcon" Stretch="UniformToFill" Margin="3"/>
+                        <Image x:Name="ImgSplashIcon" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Margin="3"/>
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">

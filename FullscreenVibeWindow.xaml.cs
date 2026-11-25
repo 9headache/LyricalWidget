@@ -105,6 +105,12 @@ public partial class FullscreenVibeWindow : Window
     {
         InitializeComponent();
 
+        var wpfIcon = IconHelper.LoadWpfIcon();
+        if (wpfIcon != null)
+        {
+            Icon = wpfIcon;
+        }
+
         _mediaService = mediaService;
         _lyricsService = lyricsService;
         _audioBeatService = audioBeatService;

@@ -62,11 +62,12 @@ public class TrayIconService : IDisposable
 
     public TrayIconService()
     {
+        int traySize = Math.Clamp(WinForms.SystemInformation.SmallIconSize.Width, 16, 64);
         _notifyIcon = new WinForms.NotifyIcon
         {
             Text = "LyricalWidget",
             Visible = true,
-            Icon = IconHelper.LoadDrawingIcon(32)
+            Icon = IconHelper.LoadDrawingIcon(traySize)
         };
 
         var contextMenu = new WinForms.ContextMenuStrip();

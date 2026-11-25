@@ -54,14 +54,29 @@ public static class IconHelper
         return Drawing.SystemIcons.Application;
     }
 
-    public static BitmapFrame? LoadWpfIcon()
+    public static BitmapFrame? LoadWpfIcon(int preferredSize = 256)
     {
         try
         {
             using var stream = GetAppIconStream();
             if (stream != null)
             {
-                return BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                if (decoder.Frames.Count > 0)
+                {
+                    BitmapFrame best = decoder.Frames[0];
+                    int bestDiff = Math.Abs(best.PixelWidth - preferredSize);
+                    foreach (var frame in decoder.Frames)
+                    {
+                        int diff = Math.Abs(frame.PixelWidth - preferredSize);
+                        if (diff < bestDiff || (diff == bestDiff && frame.PixelWidth > best.PixelWidth))
+                        {
+                            best = frame;
+                            bestDiff = diff;
+                        }
+                    }
+                    return best;
+                }
             }
         }
         catch (Exception ex)
