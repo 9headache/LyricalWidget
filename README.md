@@ -4,11 +4,11 @@
 
 **A lightweight Windows desktop lyrics overlay and 60 FPS fullscreen visualizer for Spotify and SMTC.**
 
-[![Latest Release](https://img.shields.io/github/v/release/9headache/LyricalWidget?style=for-the-badge&color=ff4b6e)](https://github.com/9headache/LyricalWidget/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/9headache/LyricalWidget/total?style=for-the-badge&color=6e56cf)](https://github.com/9headache/LyricalWidget/releases)
-[![Stars](https://img.shields.io/github/stars/9headache/LyricalWidget?style=for-the-badge&color=f5a623)](https://github.com/9headache/LyricalWidget/stargazers)
-![Platform](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D6?style=for-the-badge&logo=windows)
-![.NET 10](https://img.shields.io/badge/.NET%2010-WPF-512BD4?style=for-the-badge&logo=dotnet)
+[![Latest Release](https://img.shields.io/github/v/release/9headache/LyricalWidget?style=for-the-badge&labelColor=0E1016&color=E4E4E7)](https://github.com/9headache/LyricalWidget/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/9headache/LyricalWidget/total?style=for-the-badge&labelColor=0E1016&color=E4E4E7)](https://github.com/9headache/LyricalWidget/releases)
+[![Stars](https://img.shields.io/github/stars/9headache/LyricalWidget?style=for-the-badge&labelColor=0E1016&color=A1A1AA)](https://github.com/9headache/LyricalWidget/stargazers)
+![Platform](https://img.shields.io/badge/Windows-10%20%2F%2011-A1A1AA?style=for-the-badge&logo=windows&logoColor=E4E4E7&labelColor=0E1016)
+![.NET 10](https://img.shields.io/badge/.NET%2010-WPF-A1A1AA?style=for-the-badge&logo=dotnet&logoColor=E4E4E7&labelColor=0E1016)
 
 [**Download Latest `.exe`**](https://github.com/9headache/LyricalWidget/releases/latest) · [**Report a Bug**](https://github.com/9headache/LyricalWidget/issues/new) · [**Request a Feature**](https://github.com/9headache/LyricalWidget/issues/new)
 
