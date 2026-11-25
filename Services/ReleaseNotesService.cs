@@ -19,10 +19,19 @@ public static class ReleaseNotesService
 {
     public static IReadOnlyList<ReleaseNote> Fallback { get; } = new[]
     {
-        new ReleaseNote("Obsidian & Chrome UI overhaul", "Windows, sliders and controls now share one dark, brushed-chrome look."),
-        new ReleaseNote("Custom dark system tray menu", "A redesigned menu with instant Lyrics Refresh (Alt+R) and a Quick Guide shortcut."),
-        new ReleaseNote("Live update download progress bar", "Follow the download, preparation and restart, and cancel any time before the restart."),
-        new ReleaseNote("Reliable first-launch onboarding", "New users always see the welcome guide, and settings stay in your own user profile.")
+        new ReleaseNote("What's New in v2.5.0 — Moonlight Bloom", ""),
+        new ReleaseNote("Highlights", ""),
+        new ReleaseNote("Moonlight Bloom Kinetic Style", "Word-by-word glow sweeps and dynamic beat-reactive scaling."),
+        new ReleaseNote("Wide-Angle Fisheye Lens", "Optional 60 FPS GPU fisheye mode for Moonlight Bloom with an automatic safe-zone so lyrics never clip at the edges."),
+        new ReleaseNote("Windowed & Snappable Vibe Mode", "Vibe Mode now runs as a resizable borderless window with native Windows Snap support, plus F11 for true fullscreen (Esc returns to windowed mode)."),
+        new ReleaseNote("Multi-Monitor Support", "Automatically detects multi-display setups so you can pick which screen Vibe Mode opens on from Settings or the System Tray."),
+        new ReleaseNote("Ambient Idle Mode", "Pausing playback smoothly fades into a glowing obsidian clock with subtle particle drift."),
+        new ReleaseNote("Resizable Widget Album Art", "Adjust the desktop widget cover between 36px and 180px (with Compact, Small, Medium, Large, and Default presets) with zero corner clipping."),
+        new ReleaseNote("Dynamic Word Pacing Pill", "Added an optional pacing indicator for line-synced tracks in Kinetic mode, with a quick dismiss and Settings toggle."),
+        new ReleaseNote("Fixes", ""),
+        new ReleaseNote("", "Fixed toolbar dropdown menus misaligning on repeated hovers in Vibe Mode."),
+        new ReleaseNote("", "Fixed the Kinetic track-title overlay staying stuck over the album cover on tracks without lyrics."),
+        new ReleaseNote("", "General stability, cleanup, and settings persistence improvements across restarts.")
     };
 
     public static async Task<IReadOnlyList<ReleaseNote>> GetForCurrentVersionAsync(CancellationToken cancellationToken)

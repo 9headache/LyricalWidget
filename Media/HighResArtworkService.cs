@@ -105,7 +105,6 @@ public sealed class HighResArtworkService
             string? artUrl = artProp.GetString();
             if (string.IsNullOrWhiteSpace(artUrl)) return null;
 
-            // Upgrade 100x100 to 1200x1200bb.jpg
             string hdUrl = artUrl.Replace("100x100bb.jpg", "1200x1200bb.jpg")
                                  .Replace("100x100bb.png", "1200x1200bb.png")
                                  .Replace("100x100", "1200x1200");

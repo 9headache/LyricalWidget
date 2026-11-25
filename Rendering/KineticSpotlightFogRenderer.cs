@@ -16,7 +16,7 @@ namespace LyricalWidget.Rendering;
 /// continuous vertical conveyor belt lyrics with velocity smear over a dual-mode
 /// (swirling album fluid or razor-sharp 1200x1200 artwork) frosted fog backdrop.
 /// </summary>
-public sealed class KineticSpotlightFogRenderer
+public sealed partial class KineticSpotlightFogRenderer
 {
     private const int PoolSize = 5;
 
@@ -322,7 +322,6 @@ public sealed class KineticSpotlightFogRenderer
     {
         if (dt <= 0.0) return;
 
-        // Subtle breathing on album cover
         double breathe = 1.02 + (0.02 * Math.Sin(currentTimeSec * 0.35));
         if (_sharpScale != null)
         {
@@ -335,7 +334,6 @@ public sealed class KineticSpotlightFogRenderer
             _blurredScale.ScaleY = breathe;
         }
 
-        // Animated fog mask
         if (_fogMask != null)
         {
             double fogTime = currentTimeSec * 0.22;
@@ -353,7 +351,6 @@ public sealed class KineticSpotlightFogRenderer
             _fogMask.RadiusY = ry;
         }
 
-        // Crossfade for HdArtwork vs FluidColor backdrops
         if (_artworkGroup != null)
         {
             bool showArtwork = string.Equals(_backdropMode, "HdArtwork", StringComparison.OrdinalIgnoreCase) && _cachedSharpArt != null;
@@ -363,7 +360,6 @@ public sealed class KineticSpotlightFogRenderer
             _artworkGroup.Opacity = _artworkGroupOpacity;
         }
 
-        // Seek detection
         double curPosMs = effectivePos.TotalMilliseconds;
         bool isSeek = _lastPositionMs > 0 && Math.Abs(curPosMs - _lastPositionMs) > 300.0;
         _lastPositionMs = curPosMs;
@@ -386,7 +382,6 @@ public sealed class KineticSpotlightFogRenderer
             _conveyorSpring.Step(ref _scrollPos, ref _scrollVel, _lastActiveIndex, dt);
         }
 
-        // Conveyor opacity during pause/instrumental
         bool hasActiveContent = isPlaying && !isInstrumental && activeWordIdx >= 0 && _allWords.Count > 0;
         double targetMasterOpacity = hasActiveContent ? 1.0 : 0.0;
         _opacitySpring.Step(ref _masterOpacityPos, ref _masterOpacityVel, targetMasterOpacity, dt);
@@ -397,13 +392,11 @@ public sealed class KineticSpotlightFogRenderer
             return;
         }
 
-        // Velocity smear and vertical stretch
         double scrollSpeed = Math.Abs(_scrollVel);
         double stretchY = 1.0 + Math.Clamp(scrollSpeed * 0.035, 0.0, 0.12);
         double smearBlurRadius = Math.Clamp(scrollSpeed * 3.0, 0.0, 10.0);
         if (scrollSpeed < 0.06) smearBlurRadius = 0.0;
 
-        // Viewport-proportional hero font size
         int centerIdx = (int)Math.Round(_scrollPos);
         double baseHeroFontSize = Math.Clamp(_viewportHeight * 0.12, 68.0, 150.0);
         double maxAllowedWidth = _viewportWidth * 0.78;
@@ -438,7 +431,6 @@ public sealed class KineticSpotlightFogRenderer
 
                 double posY = delta * stepY;
 
-                // Subtle diagonal entry glide toward center
                 double lineDir = (word.LineIndex % 2 == 0) ? 1.0 : -1.0;
                 double leanSign = delta >= 0.0 ? lineDir : -lineDir;
                 double posX = leanSign * (_viewportWidth * 0.09) * Math.Min(1.0, absDelta);
@@ -446,7 +438,6 @@ public sealed class KineticSpotlightFogRenderer
                 _slotTranslates[i].X = posX;
                 _slotTranslates[i].Y = posY;
 
-                // Scale bell curve peaking at center
                 double scale;
                 if (absDelta <= 1.0)
                 {
@@ -462,7 +453,6 @@ public sealed class KineticSpotlightFogRenderer
                 _slotScales[i].ScaleX = scale;
                 _slotScales[i].ScaleY = scale * stretchY;
 
-                // Opacity falloff
                 double opacity;
                 if (delta >= 0.0)
                 {
@@ -581,130 +571,6 @@ public sealed class KineticSpotlightFogRenderer
             Brushes.White,
             1.0);
         return ft.Width;
-    }
-
-    private static Color LerpColor(Color from, Color to, double t)
-    {
-        t = Math.Clamp(t, 0.0, 1.0);
-        byte a = (byte)(from.A + ((to.A - from.A) * t));
-        byte r = (byte)(from.R + ((to.R - from.R) * t));
-        byte g = (byte)(from.G + ((to.G - from.G) * t));
-        byte b = (byte)(from.B + ((to.B - from.B) * t));
-        return Color.FromArgb(a, r, g, b);
-    }
-
-    private static BitmapSource? CreatePreblurredBitmap(BitmapSource? sharpArt, int targetSize = 256)
-    {
-        if (sharpArt == null) return null;
-
-        try
-        {
-            double scaleX = (double)targetSize / Math.Max(1, sharpArt.PixelWidth);
-            double scaleY = (double)targetSize / Math.Max(1, sharpArt.PixelHeight);
-
-            var transformed = new TransformedBitmap(sharpArt, new ScaleTransform(scaleX, scaleY));
-            var converted = new FormatConvertedBitmap(transformed, PixelFormats.Pbgra32, null, 0);
-
-            var img = new Image
-            {
-                Source = converted,
-                Width = targetSize,
-                Height = targetSize,
-                Effect = new BlurEffect
-                {
-                    Radius = 22,
-                    RenderingBias = RenderingBias.Quality,
-                    KernelType = KernelType.Gaussian
-                }
-            };
-
-            img.Measure(new Size(targetSize, targetSize));
-            img.Arrange(new Rect(0, 0, targetSize, targetSize));
-
-            var rtb = new RenderTargetBitmap(targetSize, targetSize, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(img);
-
-            int stride = targetSize * 4;
-            byte[] pixels = new byte[targetSize * stride];
-            rtb.CopyPixels(pixels, stride, 0);
-
-            var frozen = BitmapSource.Create(
-                targetSize,
-                targetSize,
-                96,
-                96,
-                PixelFormats.Pbgra32,
-                null,
-                pixels,
-                stride);
-            frozen.Freeze();
-            return frozen;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static Color BoostLuminanceFloor(Color color, double minLuminance)
-    {
-        double rf = color.R / 255.0;
-        double gf = color.G / 255.0;
-        double bf = color.B / 255.0;
-        double lum = (0.2126 * rf) + (0.7152 * gf) + (0.0722 * bf);
-
-        if (lum >= minLuminance)
-        {
-            return color;
-        }
-
-        double max = Math.Max(rf, Math.Max(gf, bf));
-        double min = Math.Min(rf, Math.Min(gf, bf));
-        double delta = max - min;
-
-        double h = 0.0;
-        if (delta > 0.0001)
-        {
-            if (Math.Abs(max - rf) < 0.0001)
-                h = 60.0 * (((gf - bf) / delta) % 6.0);
-            else if (Math.Abs(max - gf) < 0.0001)
-                h = 60.0 * (((bf - rf) / delta) + 2.0);
-            else
-                h = 60.0 * (((rf - gf) / delta) + 4.0);
-
-            if (h < 0.0) h += 360.0;
-        }
-
-        double s = max > 0.0001 ? delta / max : 0.0;
-        s = Math.Clamp(s, 0.45, 0.85);
-        double v = 0.96;
-
-        double c = v * s;
-        double x = c * (1.0 - Math.Abs((h / 60.0 % 2.0) - 1.0));
-        double m = v - c;
-
-        double r1 = 0, g1 = 0, b1 = 0;
-        if (h < 60) { r1 = c; g1 = x; b1 = 0; }
-        else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
-        else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
-        else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
-        else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
-        else { r1 = c; g1 = 0; b1 = x; }
-
-        byte rOut = (byte)Math.Clamp((r1 + m) * 255.0, 0, 255);
-        byte gOut = (byte)Math.Clamp((g1 + m) * 255.0, 0, 255);
-        byte bOut = (byte)Math.Clamp((b1 + m) * 255.0, 0, 255);
-
-        double newLum = (0.2126 * (rOut / 255.0)) + (0.7152 * (gOut / 255.0)) + (0.0722 * (bOut / 255.0));
-        if (newLum < minLuminance)
-        {
-            double blend = (minLuminance - newLum) / Math.Max(0.01, 1.0 - newLum);
-            rOut = (byte)(rOut + ((255 - rOut) * blend));
-            gOut = (byte)(gOut + ((255 - gOut) * blend));
-            bOut = (byte)(bOut + ((255 - bOut) * blend));
-        }
-
-        return Color.FromRgb(rOut, gOut, bOut);
     }
 
     private sealed class TimedWord

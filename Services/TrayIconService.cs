@@ -1,9 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using LyricalWidget.Common;
-using LyricalWidget.Lyrics;
-using Drawing = System.Drawing;
 using WinForms = System.Windows.Forms;
 
 namespace LyricalWidget.Services;
@@ -32,6 +30,11 @@ public class TrayIconService : IDisposable
     private readonly WinForms.ToolStripMenuItem _bgGlass;
 
     private readonly WinForms.ToolStripMenuItem _animFluidWave;
+    private readonly WinForms.ToolStripMenuItem _animMoonlight;
+    private readonly WinForms.ToolStripMenuItem _vibeMonitorMenu;
+    private readonly WinForms.ToolStripMenuItem _browserClock;
+    private readonly WinForms.ToolStripMenuItem _browserLyrics;
+    private readonly WinForms.ToolStripMenuItem _browserPlayer;
     private readonly WinForms.ToolStripMenuItem _themeColoredLyricsMenuItem;
 
     private string _currentLockShortcut = "Alt+L";
@@ -45,6 +48,8 @@ public class TrayIconService : IDisposable
     public event Action<string>? DisplayModeSelected;
     public event Action<string>? BackgroundStyleSelected;
     public event Action<string>? AnimationStyleSelected;
+    public event Action<string>? VibeMonitorSelected;
+    public event Action<BrowserMediaBehavior>? BrowserMediaBehaviorSelected;
     public event Action<bool>? ThemeColoredLyricsToggled;
     public event Action<bool>? AutoHideToggled;
     public event Action<bool>? IdleClockToggled;
@@ -99,7 +104,18 @@ public class TrayIconService : IDisposable
         {
             Checked = true
         };
+        _animMoonlight = new WinForms.ToolStripMenuItem(AppSettings.MoonlightBloomStyle, null, (s, e) => AnimationStyleSelected?.Invoke(AppSettings.MoonlightBloomStyle));
         styleSubMenu.DropDownItems.Add(_animFluidWave);
+        styleSubMenu.DropDownItems.Add(_animMoonlight);
+
+        var browserSubMenu = new WinForms.ToolStripMenuItem("YouTube / Browser Media");
+        _browserClock = new WinForms.ToolStripMenuItem("Show Clock", null, (s, e) => BrowserMediaBehaviorSelected?.Invoke(BrowserMediaBehavior.ShowClock));
+        _browserLyrics = new WinForms.ToolStripMenuItem("Lyrics (Clock if none)", null, (s, e) => BrowserMediaBehaviorSelected?.Invoke(BrowserMediaBehavior.YouTubeLyricsWithClockFallback));
+        _browserPlayer = new WinForms.ToolStripMenuItem("Always Show Player", null, (s, e) => BrowserMediaBehaviorSelected?.Invoke(BrowserMediaBehavior.AlwaysShowPlayer));
+
+        browserSubMenu.DropDownItems.Add(_browserClock);
+        browserSubMenu.DropDownItems.Add(_browserLyrics);
+        browserSubMenu.DropDownItems.Add(_browserPlayer);
 
         _themeColoredLyricsMenuItem = new WinForms.ToolStripMenuItem("Theme-Colored Lyrics")
         {
@@ -254,6 +270,9 @@ public class TrayIconService : IDisposable
         contextMenu.Items.Add(modeSubMenu);
         contextMenu.Items.Add(bgSubMenu);
         contextMenu.Items.Add(styleSubMenu);
+        _vibeMonitorMenu = new WinForms.ToolStripMenuItem("Vibe Display / Monitor") { Visible = false };
+        contextMenu.Items.Add(browserSubMenu);
+        contextMenu.Items.Add(_vibeMonitorMenu);
         contextMenu.Items.Add(_themeColoredLyricsMenuItem);
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
         contextMenu.Items.Add(_trackBannerMenuItem);
@@ -312,15 +331,37 @@ public class TrayIconService : IDisposable
 
     public void UpdateAnimationStyleState(string style)
     {
-        _animFluidWave.Checked = true;
+        _animMoonlight.Checked = style == AppSettings.MoonlightBloomStyle;
+        _animFluidWave.Checked = !_animMoonlight.Checked;
+    }
+
+    public void UpdateBrowserMediaState(BrowserMediaBehavior behavior)
+    {
+        _browserClock.Checked = behavior == BrowserMediaBehavior.ShowClock;
+        _browserLyrics.Checked = behavior == BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
+        _browserPlayer.Checked = behavior == BrowserMediaBehavior.AlwaysShowPlayer;
+    }
+
+    public void UpdateVibeMonitors(IReadOnlyList<MonitorTarget> monitors, string? selectedDevice)
+    {
+        _vibeMonitorMenu.DropDownItems.Clear();
+        _vibeMonitorMenu.Visible = monitors.Count > 1;
+        if (monitors.Count < 2) return;
+
+        foreach (var monitor in monitors)
+        {
+            _vibeMonitorMenu.DropDownItems.Add(new WinForms.ToolStripMenuItem(monitor.Label, null, (s, e) => VibeMonitorSelected?.Invoke(monitor.DeviceName))
+            {
+                Checked = monitor.DeviceName == selectedDevice
+            });
+        }
+        if (_vibeMonitorMenu.DropDown is WinForms.ToolStripDropDownMenu menu) ChromeMenuRenderer.Apply(menu);
     }
 
     public void UpdateThemeColoredLyricsState(bool enabled)
     {
         _themeColoredLyricsMenuItem.Checked = enabled;
     }
-
-    public void UpdateAnimationIntensityState(string intensity) => UpdateAnimationStyleState(intensity);
 
     public void UpdateAutoHideState(bool autoHide)
     {
@@ -355,11 +396,6 @@ public class TrayIconService : IDisposable
     public void UpdateFpsCapState(int fps)
     {
         _fpsCapMenuItem.Checked = (fps <= 30);
-    }
-
-    private static Drawing.Icon CreateApplicationIcon()
-    {
-        return IconHelper.LoadDrawingIcon(32);
     }
 
     public void Dispose()

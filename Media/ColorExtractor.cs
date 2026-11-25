@@ -40,14 +40,6 @@ public sealed class ThemedLyricColors
 
 public static class ColorExtractor
 {
-    private static readonly Color DefaultAccent = Color.FromRgb(0xD4, 0xD4, 0xD8); // Chrome
-
-    public static Color ExtractDominantColor(BitmapSource? bitmap)
-    {
-        var palette = ExtractPalette(bitmap);
-        return palette.Primary;
-    }
-
     /// <summary>
     /// Extracts palette colors from downscaled album art or generates a monochrome palette for grayscale covers.
     /// </summary>
@@ -85,7 +77,7 @@ public static class ColorExtractor
                 byte b = pixels[i];
                 byte g = pixels[i + 1];
                 byte r = pixels[i + 2];
-                // STRICT RULE: NEVER check or reject pixels based on the alpha byte (bytes[i + 3] is 0 on Bgr32 JPEGs)
+                // Alpha is ignored: it is 0 for every pixel of a Bgr32 JPEG
 
                 double rf = r / 255.0;
                 double gf = g / 255.0;
@@ -103,12 +95,10 @@ public static class ColorExtractor
                 double delta = max - min;
                 double lightness = (max + min) / 2.0;
 
-                // HSV calculation for precise chromatic gating
                 double vHsv = max;
                 double sHsv = max > 0.0001 ? (delta / max) : 0.0;
 
-                // Strict Noise & Shadow Rejection:
-                // Ignore dark pixels (HSV Value < 0.22) and near-white/washed pixels (HSV Saturation < 0.22)
+                // Skip dark (value < 0.22) and washed-out (saturation < 0.22) pixels
                 bool isColorful = (sHsv >= 0.22 && vHsv >= 0.22 && !(sHsv < 0.25 && vHsv > 0.85));
 
                 if (isColorful)
@@ -116,20 +106,17 @@ public static class ColorExtractor
                     chromaticPixelCount++;
                 }
 
-                // Track dark anchor (dark, rich background base)
                 if (lightness >= 0.04 && lightness <= 0.22 && lightness < darkestBrightness)
                 {
                     darkestBrightness = lightness;
                     darkAnchorCandidate = Color.FromRgb(r, g, b);
                 }
 
-                // For colorful clustering, only include genuinely colorful pixels
                 if (!isColorful)
                 {
                     continue;
                 }
 
-                // Quantize to 5-bit color space (32 bins per channel)
                 int qr = (r >> 3) & 0x1F;
                 int qg = (g >> 3) & 0x1F;
                 int qb = (b >> 3) & 0x1F;
@@ -151,7 +138,7 @@ public static class ColorExtractor
 
             double chromaticRatio = totalPixels > 0 ? (double)chromaticPixelCount / totalPixels : 0.0;
 
-            // Monochrome Coverage Gate: If fewer than 8% of pixels are genuinely colorful, treat as monochrome
+            // Under 8% colorful pixels counts as monochrome
             if (totalPixels == 0 || chromaticRatio < 0.08 || buckets.Count == 0)
             {
                 return GenerateMonochromeGlassPalette(brightnessValues, totalR, totalG, totalB, totalPixels);
@@ -167,7 +154,6 @@ public static class ColorExtractor
                     double avgSat = b.SaturationSum / c;
                     double avgBri = b.BrightnessSum / c;
 
-                    // Weighted primarily by pixel count / area
                     double lightWeight = (avgBri >= 0.15 && avgBri <= 0.88) ? 1.0 : 0.6;
                     double score = c * lightWeight;
                     return new ScoredColor(Color.FromRgb(avgR, avgG, avgB), score, avgSat, avgBri);
@@ -177,13 +163,11 @@ public static class ColorExtractor
 
             var selected = new List<Color>();
 
-            // Pick the dominant color of the cover
             if (scoredList.Count > 0)
             {
                 selected.Add(scoredList[0].Color);
             }
 
-            // Pick distinct colors with high color distance
             for (int i = 1; i < scoredList.Count && selected.Count < 4; i++)
             {
                 var candidate = scoredList[i];
@@ -203,7 +187,6 @@ public static class ColorExtractor
                 }
             }
 
-            // Fill harmonious variations if fewer than 4 distinct colors
             while (selected.Count < 4 && selected.Count > 0)
             {
                 Color baseC = selected[0];
@@ -214,12 +197,11 @@ public static class ColorExtractor
                 selected.Add(HslToRgb(newH, newS, newL));
             }
 
-            // Preserve real hue and saturation: cap saturation boosting at Math.Min(0.85, originalS * 1.15)
-            // and only lift lightness into 0.62–0.74 for readability against dark backgrounds
+            // Keep the real hue and saturation
+            // and only lift lightness, for contrast on dark backgrounds
             var (p0H, p0S, p0L) = RgbToHsl(selected[0]);
             selected[0] = HslToRgb(p0H, Math.Min(0.85, p0S * 1.15), Math.Clamp(Math.Max(p0L, 0.62), 0.62, 0.74));
 
-            // Dark anchor with slight tint of primary
             Color darkAnchor = darkAnchorCandidate;
             if (darkestBrightness >= 0.9)
             {
@@ -282,7 +264,7 @@ public static class ColorExtractor
         double pSilver = GetPercentile(0.75);
         double pMist = GetPercentile(0.92);
 
-        // Blend channel ratios with slate tone to prevent color inversion
+        // Blended with slate so the palette does not invert
         double avgR = totalR / totalPixels;
         double avgG = totalG / totalPixels;
         double avgB = totalB / totalPixels;
@@ -333,13 +315,12 @@ public static class ColorExtractor
             return ThemedLyricColors.DefaultWhite();
         }
 
-        // Monochrome Cover Fallback: on black-and-white / grayscale covers
         if (palette.IsMonochrome)
         {
             return new ThemedLyricColors
             {
-                ActiveColor = Colors.White, // pure crisp White #FFFFFF
-                InactiveColor = Color.FromArgb((byte)Math.Round(0.35 * 255.0), 255, 255, 255), // soft translucent grey Opacity ~0.35
+                ActiveColor = Colors.White,
+                InactiveColor = Color.FromArgb((byte)Math.Round(0.35 * 255.0), 255, 255, 255),
                 AccentGlowColor = Color.FromRgb(0xD4, 0xD4, 0xD8)
             };
         }
@@ -347,13 +328,11 @@ public static class ColorExtractor
         Color dominant = palette.Primary;
         var (hue, sat, light) = RgbToHsl(dominant);
 
-        // Cap saturation boosting at Math.Min(0.85, originalS * 1.15)
         double activeSat = Math.Min(0.85, sat * 1.15);
-        // Ensure bright lightness (0.70 <= L <= 0.82) so the lit left side pops clearly against the dim unlit side
+        // Bright enough for the sung side to stand out from the unsung side
         double activeLightness = Math.Clamp(Math.Max(light, 0.70), 0.70, 0.82);
         Color activeColor = HslToRgb(hue, activeSat, activeLightness, 255);
 
-        // Same hue at ~0.35 alpha for inactive words
         byte unsungAlpha = (byte)Math.Round(0.35 * 255.0);
         Color inactiveColor = Color.FromArgb(unsungAlpha, activeColor.R, activeColor.G, activeColor.B);
 

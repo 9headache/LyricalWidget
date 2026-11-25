@@ -22,13 +22,6 @@
             <GradientStop Color="#00FFFFFF" Offset="1.0"/>
         </LinearGradientBrush>
 
-        <!-- Specular rim for Glassify Fluid Glass -->
-        <LinearGradientBrush x:Key="SpecularGlassBorder" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#60FFFFFF" Offset="0.0"/>
-            <GradientStop Color="#30A1A1AA" Offset="0.45"/>
-            <GradientStop Color="#14FFFFFF" Offset="1.0"/>
-        </LinearGradientBrush>
-
         <LinearGradientBrush x:Key="DefaultProgressGradient" StartPoint="0,0" EndPoint="1,0">
             <GradientStop Color="#A1A1AA" Offset="0.0"/>
             <GradientStop Color="#FFFFFF" Offset="1.0"/>
@@ -82,7 +75,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern Pill Button Style -->
+        <!-- Pill button -->
         <Style x:Key="ToolbarPillButton" TargetType="Button">
             <Setter Property="Foreground" Value="#D4D4D8"/>
             <Setter Property="FontSize" Value="10.5"/>
@@ -146,9 +139,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- ========================================== -->
-        <!-- FLOATING UNLOCK TOOLBAR                    -->
-        <!-- ========================================== -->
+        <!-- Unlock toolbar -->
         <Border Grid.Row="0" x:Name="UnlockToolbar" Visibility="Collapsed"
                 CornerRadius="14" Margin="0,0,0,8" Padding="12,8"
                 Background="#F00E1016" BorderBrush="#1AFFFFFF" BorderThickness="1">
@@ -186,7 +177,8 @@
 
                         <!-- Animation Style -->
                         <TextBlock Text="Motion:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
-                        <Button x:Name="BtnMotionFluid" Content="Fluid" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnMotionFluidClicked" ToolTip="Fluid Wave"/>
+                        <Button x:Name="BtnMotionFluid" Content="Fluid" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnMotionFluidClicked" ToolTip="Fluid Wave"/>
+                        <Button x:Name="BtnMotionMoonlight" Content="Moonlight Bloom" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnMotionMoonlightClicked" ToolTip="Glowing words on a black stage"/>
 
                         <!-- Alignment toggle for Lyrics Only mode -->
                         <StackPanel x:Name="AlignTogglePanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
@@ -278,12 +270,45 @@
                         </CheckBox>
                     </StackPanel>
                 </Grid>
+
+                <!-- Row 3: Browser Media -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,0">
+                    <TextBlock Text="YouTube / Browser Media:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <Button x:Name="BtnBrowserClock" Content="Show Clock" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBrowserClockClicked"
+                            ToolTip="Ignore browsers and keep the idle clock on screen"/>
+                    <Button x:Name="BtnBrowserLyrics" Content="Lyrics (Clock if none)" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBrowserLyricsClicked"
+                            ToolTip="Show synced lyrics for music videos and the clock for everything else"/>
+                    <Button x:Name="BtnBrowserPlayer" Content="Always Show Player" Style="{StaticResource ToolbarPillButton}" Click="OnBrowserPlayerClicked"
+                            ToolTip="Show the player for any browser media, with lyrics when available"/>
+                    <CheckBox x:Name="ChkPacingPill" VerticalAlignment="Center" Margin="16,0,0,0"
+                              Checked="OnPacingPillChecked" Unchecked="OnPacingPillChecked"
+                              ToolTip="The Dynamic Word Pacing notice when fullscreen enters Kinetic mode">
+                        <TextBlock Text="Show Dynamic Pacing Pill" FontSize="10.5" Foreground="#D4D4D8"/>
+                    </CheckBox>
+                </StackPanel>
+
+                <!-- Row 4: Album art size -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,0">
+                    <TextBlock Text="Album Art Size:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <Button x:Name="BtnArtCompact" Content="Compact" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="44px"/>
+                    <Button x:Name="BtnArtSmall" Content="Small" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="54px"/>
+                    <Button x:Name="BtnArtMedium" Content="Medium" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="64px"/>
+                    <Button x:Name="BtnArtLarge" Content="Large" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="80px"/>
+                    <Button x:Name="BtnArtDefault" Content="Default" Style="{StaticResource ToolbarPillButton}" Margin="0,0,10,0" Click="OnAlbumArtPresetClicked" ToolTip="150px"/>
+                    <Slider x:Name="SliderAlbumArt" Style="{StaticResource ModernSlider}" Width="120" Minimum="36" Maximum="180" Value="150"
+                            SmallChange="2" LargeChange="10" ValueChanged="OnAlbumArtSizeChanged"/>
+                    <TextBlock x:Name="LblAlbumArt" Text="150px" FontSize="10" Foreground="#D4D4D8" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <!-- Row 5: Vibe monitor (only with two or more displays) -->
+                <DockPanel x:Name="VibeMonitorRow" Visibility="Collapsed" Margin="0,8,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="Vibe Display / Monitor:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <WrapPanel x:Name="VibeMonitorOptions"/>
+                </DockPanel>
             </StackPanel>
         </Border>
 
-        <!-- ========================================== -->
-        <!-- MAIN WIDGET CARD (Glassify Specular Rim)   -->
-        <!-- ========================================== -->
+        <!-- Widget card -->
         <Border Grid.Row="1" x:Name="CardBorder" CornerRadius="22" ClipToBounds="True" Background="Transparent"
                 BorderThickness="0" BorderBrush="Transparent">
             <Border.Effect>
@@ -291,7 +316,20 @@
             </Border.Effect>
 
             <Grid x:Name="CardContentGrid">
-                <!-- Background Layer: Baked Ambient Glass Backdrop (No real-time GPU blur!) -->
+                <!-- Moonlight Bloom: pitch-black card with a soft silver glow along its edges -->
+                <Border x:Name="MoonlightBackdrop" CornerRadius="21" Background="#050608" Visibility="Collapsed" IsHitTestVisible="False">
+                    <Border CornerRadius="21">
+                        <Border.Background>
+                            <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.72" RadiusY="0.72">
+                                <GradientStop Color="#00FFFFFF" Offset="0.62"/>
+                                <GradientStop Color="#0AFFFFFF" Offset="0.82"/>
+                                <GradientStop Color="#24FFFFFF" Offset="1.0"/>
+                            </RadialGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </Border>
+
+                <!-- Backdrop, baked once per cover instead of blurred live -->
                 <Grid x:Name="GlassBackgroundContainer" Visibility="Collapsed">
                     <Image x:Name="BackdropImageA" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.32"/>
                     <Image x:Name="BackdropImageB" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0"/>
@@ -300,16 +338,12 @@
                             Background="{StaticResource TopSheenBrush}" CornerRadius="1"/>
                 </Grid>
 
-                <!-- ========================================== -->
-                <!-- MEDIA CONTENT ROOT (Mutually Exclusive)    -->
-                <!-- ========================================== -->
+                <!-- Media content -->
                 <Grid x:Name="MediaContentRoot">
-                    <!-- ========================================== -->
-                    <!-- DISPLAY MODE 1: LYRICS ONLY                -->
-                    <!-- ========================================== -->
+                    <!-- Lyrics only -->
                     <Grid x:Name="LyricsOnlyView" Visibility="Collapsed" Margin="14,8,14,10">
                     <Grid.RowDefinitions>
-                        <!-- Dedicated Row 0: Docked Track Switch Banner (only in Lyrics Only mode, never overlapping lyrics) -->
+                        <!-- Row 0: track banner, so it never covers the lyrics -->
                         <RowDefinition Height="Auto"/>
                         <!-- Row 1: Clipped Lyrics Viewport -->
                         <RowDefinition Height="*"/>
@@ -359,24 +393,25 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
 
-                        <Canvas x:Name="LyricsOnlyCanvas" ClipToBounds="True"/>
+                        <Grid>
+                            <Canvas x:Name="LyricsOnlyCanvas" ClipToBounds="True"/>
+                            <Canvas x:Name="LyricsOnlyMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                        </Grid>
                     </Border>
                 </Grid>
 
-                <!-- ========================================== -->
-                <!-- DISPLAY MODE 2: ALBUM ART + LYRICS         -->
-                <!-- ========================================== -->
+                <!-- Album art and lyrics -->
                 <Grid x:Name="SideBySideView" Visibility="Visible" Margin="16,12,16,12">
                     <Grid.ColumnDefinitions>
                         <!-- Left Column: Album Art + Meta + Progress Bar matching art width -->
                         <ColumnDefinition Width="Auto"/>
-                        <!-- Right Column: Spicy Lyrics Fluid Viewport -->
+                        <!-- Right column: lyrics -->
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Left Column: Album Art + Meta + Progress Bar -->
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,18,0">
-                        <!-- Square Album Art (~150px) with Rounded RectangleGeometry Clip & Ambient Aura Glow -->
+                    <StackPanel x:Name="SideInfoColumn" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,18,0">
+                        <!-- Album art, WidgetAlbumArtSize -->
                         <Border x:Name="SideAlbumBorder" Width="150" Height="150" CornerRadius="14" Background="#0E1016">
                             <Border.Effect>
                                 <DropShadowEffect x:Name="SideAlbumAuraGlow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#A1A1AA" Opacity="0.55"/>
@@ -384,11 +419,9 @@
                             <Grid>
                                 <Path x:Name="SideFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                                       Fill="#71717A" Width="36" Height="36" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <Image x:Name="SideAlbumArtImage" Stretch="UniformToFill">
-                                    <Image.Clip>
-                                        <RectangleGeometry RadiusX="14" RadiusY="14" Rect="0,0,150,150"/>
-                                    </Image.Clip>
-                                </Image>
+                                <!-- Holds the artwork; SideAlbumArtSurface paints it (see MainWindow.AlbumArt.cs) -->
+                                <Image x:Name="SideAlbumArtImage" Visibility="Collapsed"/>
+                                <Border x:Name="SideAlbumArtSurface" IsHitTestVisible="False"/>
 
                                 <!-- Quick Media Controls Frosted Pill (Unlocked Hover or Left Alt + Shift) -->
                                 <Border x:Name="SideMediaControlsOverlay" CornerRadius="18" Background="#E00E1016"
@@ -417,20 +450,23 @@
                         <TextBlock x:Name="SideTrackArtist" Text="Artist" FontSize="11" Foreground="#A1A1AA"
                                    TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="0,2,0,0"/>
 
-                        <!-- Progress Bar (strictly 150px Album Art Width) -->
-                        <Border Width="150" Height="3" CornerRadius="1.5" Background="#26FFFFFF" Margin="0,8,0,0">
+                        <!-- Progress Bar (follows the album art width) -->
+                        <Border x:Name="SideProgressTrack" Width="150" Height="3" CornerRadius="1.5" Background="#26FFFFFF" Margin="0,8,0,0">
                             <Grid HorizontalAlignment="Left" x:Name="SideProgressFill" Width="0">
+                                <Grid.LayoutTransform>
+                                    <ScaleTransform x:Name="SideProgressFillScale"/>
+                                </Grid.LayoutTransform>
                                 <Border x:Name="SideProgressBarBorder" CornerRadius="1.5" Background="{StaticResource DefaultProgressGradient}"/>
                             </Grid>
                         </Border>
 
-                        <Grid Width="150" Margin="0,3,0,0">
+                        <Grid x:Name="SideTimeRow" Width="150" Margin="0,3,0,0">
                             <TextBlock x:Name="SideCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Left"/>
                             <TextBlock x:Name="SideTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Right"/>
                         </Grid>
                     </StackPanel>
 
-                    <!-- Right Column: Spicy Lyrics Viewport with Canvas -->
+                    <!-- Right column: lyrics -->
                     <Border Grid.Column="1" x:Name="SideLyricsViewport" ClipToBounds="True">
                         <Border.OpacityMask>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -441,16 +477,17 @@
                             </LinearGradientBrush>
                         </Border.OpacityMask>
 
-                        <Canvas x:Name="SideLyricsCanvas" ClipToBounds="True"/>
+                        <Grid>
+                            <Canvas x:Name="SideLyricsCanvas" ClipToBounds="True"/>
+                            <Canvas x:Name="SideMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                        </Grid>
                     </Border>
                 </Grid>
 
-                <!-- ======================================================== -->
-                <!-- DISPLAY MODE 3: ALBUM ART ONLY (Instagram Story Style)   -->
-                <!-- ======================================================== -->
+                <!-- Album art only -->
                 <Grid x:Name="AlbumOnlyView" Visibility="Collapsed" Margin="16,12,16,12" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                        <!-- Square Album Art (~165px) with Ambient Aura Glow -->
+                        <!-- Album art, WidgetAlbumArtSize + 10% -->
                         <Border x:Name="AlbumOnlyBorder" Width="165" Height="165" CornerRadius="16" Background="#0E1016" HorizontalAlignment="Center">
                             <Border.Effect>
                                 <DropShadowEffect x:Name="AlbumOnlyShadow" BlurRadius="26" ShadowDepth="4" Direction="270" Color="#A1A1AA" Opacity="0.55"/>
@@ -458,11 +495,8 @@
                             <Grid>
                                 <Path x:Name="AlbumOnlyFallbackIcon" Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                                       Fill="#71717A" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <Image x:Name="AlbumOnlyImage" Stretch="UniformToFill">
-                                    <Image.Clip>
-                                        <RectangleGeometry RadiusX="16" RadiusY="16" Rect="0,0,165,165"/>
-                                    </Image.Clip>
-                                </Image>
+                                <Image x:Name="AlbumOnlyImage" Visibility="Collapsed"/>
+                                <Border x:Name="AlbumOnlyArtSurface" IsHitTestVisible="False"/>
 
                                 <!-- Quick Media Controls Frosted Pill (Unlocked Hover or Left Alt + Shift) -->
                                 <Border x:Name="AlbumOnlyMediaControlsOverlay" CornerRadius="18" Background="#E00E1016"
@@ -486,14 +520,17 @@
                             </Grid>
                         </Border>
 
-                        <!-- Progress Bar (strictly 165px Album Art Width) -->
-                        <Border Width="165" Height="3.5" CornerRadius="1.75" Background="#26FFFFFF" Margin="0,10,0,0">
+                        <!-- Progress Bar (follows the album art width) -->
+                        <Border x:Name="AlbumOnlyProgressTrack" Width="165" Height="3.5" CornerRadius="1.75" Background="#26FFFFFF" Margin="0,10,0,0">
                             <Grid HorizontalAlignment="Left" x:Name="AlbumOnlyProgressFill" Width="0">
+                                <Grid.LayoutTransform>
+                                    <ScaleTransform x:Name="AlbumOnlyProgressFillScale"/>
+                                </Grid.LayoutTransform>
                                 <Border x:Name="AlbumOnlyProgressBarBorder" CornerRadius="1.75" Background="{StaticResource DefaultProgressGradient}"/>
                             </Grid>
                         </Border>
 
-                        <Grid Width="165" Margin="0,3,0,0">
+                        <Grid x:Name="AlbumOnlyTimeRow" Width="165" Margin="0,3,0,0">
                             <TextBlock x:Name="AlbumOnlyCurrentTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Left"/>
                             <TextBlock x:Name="AlbumOnlyTotalTime" Text="0:00" FontSize="9.5" FontFamily="Consolas, Segoe UI" Foreground="#A1A1AA" HorizontalAlignment="Right"/>
                         </Grid>
@@ -506,9 +543,7 @@
                 </Grid>
                 </Grid>
 
-                <!-- ========================================== -->
-                <!-- IDLE CLOCK ROOT (Glassify Single-Digit)    -->
-                <!-- ========================================== -->
+                <!-- Idle clock -->
                 <Grid x:Name="IdleClockRoot" Visibility="Collapsed" Opacity="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20,16">
                     <Grid.Effect>
                         <DropShadowEffect BlurRadius="16" ShadowDepth="1" Direction="270" Color="#000000" Opacity="0.45"/>
@@ -564,7 +599,7 @@
             </Grid>
         </Border>
 
-        <!-- Snap-to-Edge & Center Alignment Guide Lines (1px, 35% opacity) -->
+        <!-- Snap guides -->
         <Grid Grid.Row="1" IsHitTestVisible="False">
             <Border x:Name="SnapGuideLeft" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
             <Border x:Name="SnapGuideRight" HorizontalAlignment="Right" VerticalAlignment="Stretch" Width="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
@@ -574,7 +609,7 @@
             <Border x:Name="SnapGuideCenterY" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="1" Background="#F4F4F5" Opacity="0.35" Visibility="Collapsed"/>
         </Grid>
 
-        <!-- Resize Grip in Bottom-Right Corner (Only visible when unlocked) -->
+        <!-- Resize grip, visible while unlocked -->
         <Thumb x:Name="ResizeGripThumb" Grid.Row="1" Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                Margin="0,0,10,10" Cursor="SizeNWSE" Visibility="Collapsed" Opacity="0.5">
             <Thumb.Template>

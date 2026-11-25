@@ -15,14 +15,13 @@ public partial class App : System.Windows.Application
 
         if (!createdNew)
         {
-            // Another instance of LyricalWidget is already running; cleanly exit to avoid duplicate overlays
             _singleInstanceMutex.Dispose();
             _singleInstanceMutex = null;
             Shutdown();
             return;
         }
 
-        // Elevate process priority safely to AboveNormal to prevent scheduling starvation while gaming
+        // Above normal so the overlay is not starved while a game has the CPU
         try
         {
             using var currentProc = System.Diagnostics.Process.GetCurrentProcess();
@@ -33,7 +32,7 @@ public partial class App : System.Windows.Application
             System.Diagnostics.Debug.WriteLine($"Failed to elevate process priority: {ex.Message}");
         }
 
-        // Disable Windows 11 EcoQoS background power throttling so execution speed is not throttled
+        // Opt out of Windows 11 EcoQoS, which would throttle a background overlay
         LyricalWidget.Interop.NativeMethods.DisableProcessPowerThrottling();
 
         base.OnStartup(e);

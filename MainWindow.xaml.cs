@@ -1,18 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using LyricalWidget.Audio;
 using LyricalWidget.Common;
 using LyricalWidget.Interop;
@@ -34,11 +27,6 @@ public partial class MainWindow : Window
     private bool _isFullscreenActive = false;
     public bool IsFullscreenActive => _isFullscreenActive;
     private TrayIconService? _trayService;
-    private WelcomeWindow? _guideWindow;
-    private UpdatePromptWindow? _updatePrompt;
-    private AppDialogWindow? _updateStatusDialog;
-    private WhatsNewWindow? _whatsNewWindow;
-    private bool _isCheckingForUpdates = false;
 
     private LrcDocument _currentLyrics = LrcDocument.Empty();
     private long _trackSequenceId = 0;
@@ -57,8 +45,13 @@ public partial class MainWindow : Window
             Icon = wpfIcon;
         }
 
+        _lyricsOnlyMoonlight = new MoonlightBloomRenderer(LyricsOnlyMoonlightCanvas, showInterludeNote: true);
+        _sideMoonlight = new MoonlightBloomRenderer(SideMoonlightCanvas, showInterludeNote: true);
+
         _settings = SettingsService.Load();
+        _mediaService.BrowserBehavior = _settings.BrowserMediaBehavior;
         RestoreSettings();
+        InitAlbumArt();
 
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -68,7 +61,6 @@ public partial class MainWindow : Window
         ResizeGripThumb.DragDelta += OnResizeGripDragDelta;
     }
 
-
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
@@ -76,13 +68,16 @@ public partial class MainWindow : Window
         _mediaService.TrackChanged += OnTrackChanged;
         _mediaService.PlaybackStateChanged += OnPlaybackStateChanged;
         _mediaService.TimelineResynced += OnTimelineResynced;
+        _mediaService.BrowserSuppressionChanged += (s, args) => Dispatcher.InvokeAsync(() =>
+        {
+            if (!IsFullscreenActive) UpdateAutoHideState(_mediaService.IsPlaying);
+        });
 
-        // Keep MainWindow transparent until Welcome/Splash finishes
+        // Hidden until the welcome window or splash has gone
         Opacity = 0.0;
 
         if (!_settings.HasSeenWelcome)
         {
-            // Mode A: First-Boot Full Interactive Guide
             var welcome = new WelcomeWindow(isFirstBoot: true, isReplay: false, closedCallback: () =>
             {
                 Dispatcher.Invoke(() =>
@@ -98,7 +93,7 @@ public partial class MainWindow : Window
                     }
                     if (!_settings.HasCustomPosition)
                     {
-                        // Cleanly center on primary monitor where welcome dissolved
+                        // Centred where the welcome window dissolved
                         Left = Math.Max(0, (SystemParameters.PrimaryScreenWidth - Width) / 2.0);
                         Top = Math.Max(0, (SystemParameters.PrimaryScreenHeight - Height) / 2.0);
                         _settings.Left = Left;
@@ -122,7 +117,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Mode B: Returning-User Quick Splash (1.6s)
             var splash = new WelcomeWindow(isFirstBoot: false, isReplay: false, closedCallback: () =>
             {
                 Dispatcher.Invoke(() =>
@@ -178,7 +172,6 @@ public partial class MainWindow : Window
         }
 #endif
 
-        // Non-blocking background update check ~5 seconds after startup
         _ = Task.Run(async () =>
         {
             await Task.Delay(5000);
@@ -196,122 +189,6 @@ public partial class MainWindow : Window
         });
     }
 
-
-    // Toolbar event handlers
-    private void OnModeLyricsOnlyClicked(object sender, RoutedEventArgs e) => SetDisplayMode("LyricsOnly");
-    private void OnModeSideBySideClicked(object sender, RoutedEventArgs e) => SetDisplayMode("AlbumAndLyrics");
-    private void OnModeAlbumOnlyClicked(object sender, RoutedEventArgs e) => SetDisplayMode("AlbumOnly");
-
-    private void OnBgTransparentClicked(object sender, RoutedEventArgs e) => SetBackgroundStyle("Transparent");
-    private void OnBgGlassClicked(object sender, RoutedEventArgs e) => SetBackgroundStyle("Glass");
-
-    private void OnLinesAutoClicked(object sender, RoutedEventArgs e) => SetVisibleLinesMode("Auto");
-    private void OnLines2Clicked(object sender, RoutedEventArgs e) => SetVisibleLinesMode("2");
-    private void OnLines3Clicked(object sender, RoutedEventArgs e) => SetVisibleLinesMode("3");
-    private void OnLines5Clicked(object sender, RoutedEventArgs e) => SetVisibleLinesMode("5");
-
-    private void OnMotionFluidClicked(object sender, RoutedEventArgs e) => SetAnimationStyle("Fluid Wave");
-
-    private void OnThemeLyricsChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkThemeLyrics.IsChecked == true;
-        SetThemeColoredLyrics(isChecked);
-    }
-
-    private void OnAlignCenterClicked(object sender, RoutedEventArgs e) => SetLyricAlignment("Center");
-    private void OnAlignLeftClicked(object sender, RoutedEventArgs e) => SetLyricAlignment("Left");
-
-    private void OnLockClicked(object sender, RoutedEventArgs e) => ToggleLock();
-
-    private void OnFontSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (!IsLoaded) return;
-        _settings.FontSize = e.NewValue;
-        LblFontSize.Text = $"{e.NewValue:0}px";
-        RebuildLyricsViews();
-        SaveCurrentBounds();
-    }
-
-    private void OnOpacityChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (!IsLoaded) return;
-        _settings.Opacity = e.NewValue;
-        LblOpacity.Text = $"{(int)(e.NewValue * 100)}%";
-        CardBorder.Opacity = e.NewValue;
-        SaveCurrentBounds();
-    }
-
-    private void OnSyncOffsetChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (!IsLoaded) return;
-        int offset = (int)Math.Round(e.NewValue / 50.0) * 50;
-        _settings.SyncOffsetMs = offset;
-        LblSyncOffset.Text = $"{(offset >= 0 ? "+" : "")}{offset} ms";
-        SaveCurrentBounds();
-    }
-
-    private void OnAutoHideChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkAutoHide.IsChecked == true;
-        _settings.AutoHideWhenPaused = isChecked;
-        _trayService?.UpdateAutoHideState(isChecked);
-        UpdateAutoHideState(_mediaService.IsPlaying);
-        SaveCurrentBounds();
-    }
-
-    private void OnIdleClockChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkIdleClock.IsChecked == true;
-        _settings.ShowIdleClock = isChecked;
-        _trayService?.UpdateIdleClockState(isChecked);
-        UpdateAutoHideState(_mediaService.IsPlaying);
-        SaveCurrentBounds();
-    }
-
-    private void OnSubLinesChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkSubLines.IsChecked == true;
-        _settings.ShowSubLines = isChecked;
-        _trayService?.UpdateSubLinesState(isChecked);
-        RebuildLyricsViews();
-        EnsureRenderingSubscribed();
-        SaveCurrentBounds();
-    }
-
-    private void OnTrackBannerChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkTrackBanner.IsChecked == true;
-        _settings.ShowTrackSwitchBanner = isChecked;
-        _trayService?.UpdateTrackBannerState(isChecked);
-        SaveCurrentBounds();
-    }
-
-    private void OnGamingModeChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkGamingMode.IsChecked == true;
-        ApplyGamingMode(isChecked);
-    }
-
-    private void OnEcoFpsChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        bool isChecked = ChkEcoFps.IsChecked == true;
-        SetFpsCap(isChecked ? 30 : 60);
-    }
-
-    private void OnAudioReactiveChecked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        SetAudioReactiveGlow(ChkAudioReactive.IsChecked == true);
-    }
-
-
     public void ToggleFullscreenVibe()
     {
         if (_vibeWindow != null && _vibeWindow.IsVisible)
@@ -320,7 +197,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Temporarily suspend Gaming Mode rendering while Fullscreen is open (force hardware GPU acceleration)
+        // Fullscreen needs the GPU, so Gaming Mode's software rendering is lifted while it is open
         try
         {
             RenderOptions.ProcessRenderMode = RenderMode.Default;
@@ -351,10 +228,12 @@ public partial class MainWindow : Window
         {
             _vibeWindow = null;
             _isFullscreenActive = false;
+            // The pill's own "Don't show again" may have changed it
+            ChkPacingPill.IsChecked = _settings.ShowKineticPacingPill;
+            RefreshVibeMonitors();
             Background = Brushes.Transparent;
-            // Cleanly restore MainWindow's Gaming Mode state (SoftwareOnly + stops/disposes loopback if enabled)
             ApplyGamingMode(_settings.GamingMode);
-            ApplyEffectiveVisibility();
+            UpdateAutoHideState(_mediaService.IsPlaying);
             EnsureTopmost();
             EnsureRenderingSubscribed();
         };
@@ -363,229 +242,6 @@ public partial class MainWindow : Window
     }
 
     private void OnFullscreenVibeClicked(object sender, RoutedEventArgs e) => ToggleFullscreenVibe();
-
-
-    // Media playback controls
-    private static readonly Geometry PlayGeometry = Geometry.Parse("M8 5v14l11-7z");
-    private static readonly Geometry PauseGeometry = Geometry.Parse("M6 19h4V5H6v14zm8-14v14h4V5h-4z");
-
-    private System.Windows.Threading.DispatcherTimer? _mediaShortcutTimer;
-    private bool _isHoldingMediaShortcut = false;
-
-    private async void OnMediaPrevClicked(object sender, RoutedEventArgs e)
-    {
-        e.Handled = true;
-        await _mediaService.TrySkipPreviousAsync();
-    }
-
-    private async void OnMediaPlayPauseClicked(object sender, RoutedEventArgs e)
-    {
-        e.Handled = true;
-        await _mediaService.TryTogglePlayPauseAsync();
-    }
-
-    private async void OnMediaNextClicked(object sender, RoutedEventArgs e)
-    {
-        e.Handled = true;
-        await _mediaService.TrySkipNextAsync();
-    }
-
-    private void UpdateMediaControlsPlayPauseIcon(bool isPlaying)
-    {
-        var geo = isPlaying ? PauseGeometry : PlayGeometry;
-        if (SidePlayPauseIcon != null) SidePlayPauseIcon.Data = geo;
-        if (AlbumPlayPauseIcon != null) AlbumPlayPauseIcon.Data = geo;
-    }
-
-    private void WireMediaControlsHover()
-    {
-        SideAlbumBorder.MouseEnter += (s, e) =>
-        {
-            if (!_isLocked) ShowMediaControls(true);
-        };
-        SideAlbumBorder.MouseLeave += (s, e) =>
-        {
-            if (!_isHoldingMediaShortcut) ShowMediaControls(false);
-        };
-        AlbumOnlyBorder.MouseEnter += (s, e) =>
-        {
-            if (!_isLocked) ShowMediaControls(true);
-        };
-        AlbumOnlyBorder.MouseLeave += (s, e) =>
-        {
-            if (!_isHoldingMediaShortcut) ShowMediaControls(false);
-        };
-    }
-
-    private void InitMediaShortcutTimer()
-    {
-        _mediaShortcutTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Input)
-        {
-            Interval = TimeSpan.FromMilliseconds(30)
-        };
-        _mediaShortcutTimer.Tick += (s, e) =>
-        {
-            if (_isClosing) return;
-            bool altHeld = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LMENU) & 0x8000) != 0;
-            bool shiftHeld = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
-            bool holding = altHeld && shiftHeld;
-
-            if (holding != _isHoldingMediaShortcut)
-            {
-                _isHoldingMediaShortcut = holding;
-                if (holding)
-                {
-                    if (_hwnd != IntPtr.Zero)
-                    {
-                        NativeMethods.SetClickThrough(_hwnd, false);
-                    }
-                    ShowMediaControls(true);
-                }
-                else
-                {
-                    ShowMediaControls(false);
-                    if (_isLocked && _hwnd != IntPtr.Zero)
-                    {
-                        NativeMethods.SetClickThrough(_hwnd, true);
-                    }
-                }
-            }
-        };
-        _mediaShortcutTimer.Start();
-    }
-
-    private void ShowMediaControls(bool show)
-    {
-        var targetOpacity = show ? 1.0 : 0.0;
-        var anim = new DoubleAnimation(targetOpacity, TimeSpan.FromMilliseconds(160))
-        {
-            EasingFunction = new CubicEase { EasingMode = show ? EasingMode.EaseOut : EasingMode.EaseIn }
-        };
-
-        void ApplyTo(Border overlay)
-        {
-            if (overlay == null) return;
-            if (show)
-            {
-                overlay.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                anim.Completed += (s, e) =>
-                {
-                    if (!_isHoldingMediaShortcut && targetOpacity == 0.0)
-                    {
-                        overlay.Visibility = Visibility.Collapsed;
-                    }
-                };
-            }
-            overlay.BeginAnimation(UIElement.OpacityProperty, anim);
-        }
-
-        ApplyTo(SideMediaControlsOverlay);
-        ApplyTo(AlbumOnlyMediaControlsOverlay);
-    }
-
-
-    public void ShowStartupGuide()
-    {
-        if (_guideWindow != null && _guideWindow.IsVisible)
-        {
-            _guideWindow.Activate();
-            return;
-        }
-
-        _guideWindow = new WelcomeWindow(isFirstBoot: true, isReplay: true);
-        _guideWindow.Show();
-    }
-
-
-    public void ShowBugReporter()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = AppVersionInfo.SupportUrl,
-                UseShellExecute = true
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Failed to open support link: {ex.Message}");
-        }
-    }
-
-    private void ShowUpdatePrompt(UpdateInfo update, UpdateRunner? runner = null)
-    {
-        // One prompt at a time: two downloads would share the same temp folder
-        if (_updatePrompt != null && _updatePrompt.IsVisible)
-        {
-            _updatePrompt.Activate();
-            return;
-        }
-
-        _updatePrompt = new UpdatePromptWindow(update, runner) { Owner = this };
-        _updatePrompt.Show();
-    }
-
-    public void ShowWhatsNew()
-    {
-        if (_whatsNewWindow != null && _whatsNewWindow.IsVisible)
-        {
-            _whatsNewWindow.Activate();
-            return;
-        }
-
-        _whatsNewWindow = new WhatsNewWindow();
-        _whatsNewWindow.Show();
-    }
-
-    private void ShowUpdateStatus(AppDialogWindow dialog)
-    {
-        _updateStatusDialog?.Close();
-        _updateStatusDialog = dialog;
-        dialog.Show();
-    }
-
-    private async void OnCheckForUpdatesRequested()
-    {
-        if (_isCheckingForUpdates) return;
-        _isCheckingForUpdates = true;
-        try
-        {
-            var result = await UpdateService.CheckForUpdateAsync();
-            if (_isClosing) return;
-            if (result.Update != null)
-            {
-                ShowUpdatePrompt(result.Update);
-            }
-            else if (result.IsUpToDate)
-            {
-                ShowUpdateStatus(new AppDialogWindow(
-                    AppDialogGlyph.Check,
-                    "You're running the latest build.",
-                    $"LyricalWidget v{AppVersionInfo.Version} is already up to date — nothing to install.",
-                    "View What's New",
-                    ShowWhatsNew));
-            }
-            else
-            {
-                ShowUpdateStatus(new AppDialogWindow(
-                    AppDialogGlyph.Info,
-                    "Couldn't check for updates.",
-                    $"Check your internet connection and try again.\n\n{result.ErrorMessage}"));
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Update check error: {ex.Message}");
-        }
-        finally
-        {
-            _isCheckingForUpdates = false;
-        }
-    }
 
     private void CloseApp()
     {
@@ -596,6 +252,7 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _isClosing = true;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _mediaShortcutTimer?.Stop();
         StopRenderingLoop();
         lock (_trackLoadLock)

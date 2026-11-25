@@ -93,7 +93,6 @@ public static class CodeLyricFormatter
         string title = !string.IsNullOrWhiteSpace(track?.Title) ? track.Title.Trim() : "Track";
         string artist = !string.IsNullOrWhiteSpace(track?.Artist) ? track.Artist.Trim() : "Unknown";
 
-        // Header comment
         string headerComment = $"// {title} — {artist}";
         var headerTokens = new List<CodeToken>
         {
@@ -152,10 +151,9 @@ public static class CodeLyricFormatter
             return WrapAndTokenizeLine(codeStr, lineIndex, ref codeLineNumber, line.Timestamp, lineEnd, null);
         }
 
-        // Procedural lyric code transformation
         string codeLine = BuildCodeStatement(rawText);
 
-        // Detect keyword doodle (capped to 1 per line)
+        // At most one doodle per line
         string? doodle = DetectDoodle(rawText);
 
         return WrapAndTokenizeLine(codeLine, lineIndex, ref codeLineNumber, line.Timestamp, lineEnd, doodle);
@@ -292,7 +290,6 @@ public static class CodeLyricFormatter
             return result;
         }
 
-        // Split line into continuation lines near MaxLineLength
         var parts = SplitIntoContinuationParts(codeLine, MaxLineLength);
         double totalChars = 0;
         foreach (var p in parts) totalChars += p.Length;
@@ -309,7 +306,6 @@ public static class CodeLyricFormatter
             TimeSpan partEnd = TimeSpan.FromMilliseconds(curMs + partMs);
             curMs += partMs;
 
-            // Only first part gets doodle if any
             string? partDoodle = p == 0 ? doodle : null;
             var tokens = Tokenize(part, partStart, partEnd, partDoodle);
 

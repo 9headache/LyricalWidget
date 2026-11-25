@@ -11,25 +11,21 @@ public static class NativeMethods
 
     public const int WM_HOTKEY = 0x0312;
     public const int WM_MOVING = 0x0216;
-    public const int WM_ENTERSIZEMOVE = 0x0231;
     public const int WM_EXITSIZEMOVE = 0x0232;
 
     public const uint MOD_ALT = 0x0001;
     public const uint MOD_CONTROL = 0x0002;
     public const uint MOD_SHIFT = 0x0004;
-    public const uint MOD_WIN = 0x0008;
     public const uint MOD_NOREPEAT = 0x4000;
 
-    public const uint VK_L = 0x4C; // 'L' key
-    public const uint VK_H = 0x48; // 'H' key
-    public const uint VK_F = 0x46; // 'F' key
-    public const uint VK_R = 0x52; // 'R' key
+    public const uint VK_L = 0x4C;
+    public const uint VK_H = 0x48;
+    public const uint VK_F = 0x46;
+    public const uint VK_R = 0x52;
     public const uint VK_OEM_4 = 0xDB; // '[' key
     public const uint VK_OEM_6 = 0xDD; // ']' key
-    public const int VK_MENU = 0x12; // Alt key
-    public const int VK_SHIFT = 0x10; // Shift key
-    public const int VK_LMENU = 0xA4; // Left Alt key
-    public const int VK_LSHIFT = 0xA0; // Left Shift key
+    public const int VK_LMENU = 0xA4;
+    public const int VK_LSHIFT = 0xA0;
 
     public const int HOTKEY_ID_LOCK_TOGGLE = 9001;
     public const int HOTKEY_ID_HIDE_TOGGLE = 9002;
@@ -41,6 +37,7 @@ public static class NativeMethods
     public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOMOVE = 0x0002;
+    public const uint SWP_NOZORDER = 0x0004;
     public const uint SWP_NOACTIVATE = 0x0010;
     public const uint SWP_SHOWWINDOW = 0x0040;
 
@@ -70,6 +67,70 @@ public static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsZoomed(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsIconic(IntPtr hWnd);
+
+    private const int ENUM_CURRENT_SETTINGS = -1;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct DEVMODE
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmDeviceName;
+        public ushort dmSpecVersion;
+        public ushort dmDriverVersion;
+        public ushort dmSize;
+        public ushort dmDriverExtra;
+        public uint dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public uint dmDisplayOrientation;
+        public uint dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmFormName;
+        public ushort dmLogPixels;
+        public uint dmBitsPerPel;
+        public uint dmPelsWidth;
+        public uint dmPelsHeight;
+        public uint dmDisplayFlags;
+        public uint dmDisplayFrequency;
+        public uint dmICMMethod;
+        public uint dmICMIntent;
+        public uint dmMediaType;
+        public uint dmDitherType;
+        public uint dmReserved1;
+        public uint dmReserved2;
+        public uint dmPanningWidth;
+        public uint dmPanningHeight;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "EnumDisplaySettingsW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+    /// <summary>The display's real pixel resolution, independent of this process's DPI awareness.</summary>
+    public static (int Width, int Height)? GetDisplayResolution(string deviceName)
+    {
+        var mode = new DEVMODE { dmSize = (ushort)Marshal.SizeOf<DEVMODE>() };
+        return EnumDisplaySettings(deviceName, ENUM_CURRENT_SETTINGS, ref mode) && mode.dmPelsWidth > 0
+            ? ((int)mode.dmPelsWidth, (int)mode.dmPelsHeight)
+            : null;
+    }
 
     [DllImport("user32.dll")]
     public static extern short GetAsyncKeyState(int vKey);
@@ -179,7 +240,7 @@ public static class NativeMethods
             {
                 Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
                 ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
-                StateMask = 0 // Explicitly 0 to disable execution speed throttling
+                StateMask = 0 // 0 = not throttled
             };
 
             uint size = (uint)Marshal.SizeOf(typeof(PROCESS_POWER_THROTTLING_STATE));

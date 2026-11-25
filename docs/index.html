@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LyricalWidget — Synced Lyrics. Zero Frame Drops.</title>
+  <title>LyricalWidget | Synced lyrics for Windows</title>
   <meta name="description" content="A free, source-available desktop lyrics overlay and 60 FPS fullscreen visualizer for Spotify and SMTC. Native .NET 10 WPF built for gaming setups.">
   <meta name="theme-color" content="#0D0E12">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='cg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ffffff'/%3E%3Cstop offset='48%25' stop-color='%23a1a1aa'/%3E%3Cstop offset='72%25' stop-color='%23f4f4f5'/%3E%3Cstop offset='100%25' stop-color='%2352525b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='13.5' fill='%2309090b' stroke='url(%23cg)' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='0.9'/%3E%3Crect x='11' y='13' width='2.2' height='6' rx='1.1' fill='url(%23cg)'/%3E%3Crect x='14.9' y='9.5' width='2.2' height='13' rx='1.1' fill='url(%23cg)'/%3E%3Crect x='18.8' y='11.5' width='2.2' height='9' rx='1.1' fill='url(%23cg)'/%3E%3C/svg%3E">
@@ -11,6 +11,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Show only the power-up screen from the first paint. Deep links and reduced motion go straight to the page,
+    // and if app.js never takes over the page unlocks by itself.
+    if (!location.hash && Element.prototype.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('intro-pending');
+      setTimeout(function () {
+        var root = document.documentElement;
+        if (!root.classList.contains('intro-ready')) root.classList.remove('intro-pending');
+      }, 4000);
+    }
+  </script>
 </head>
 <body data-channel="0">
 
@@ -35,7 +46,7 @@
           <rect x="18.8" y="11.5" width="2.2" height="9" rx="1.1" fill="url(#chrome-logo-grad)"/>
         </svg>
         <span class="brand-name">LyricalWidget</span>
-        <span class="brand-ver">v2.1.1</span>
+        <span class="brand-ver">v2.5.0</span>
       </a>
 
       <nav class="topbar-nav" aria-label="Primary navigation">
@@ -60,7 +71,7 @@
       <div class="hero-studio-glow" aria-hidden="true"></div>
       <div class="container">
         <div class="hero-split">
-          <div>
+          <div class="hero-copy">
             <div class="hero-eyebrow">WINDOWS 10 &amp; 11 &middot; NATIVE .NET 10 WPF</div>
             <h1 class="hero-title">
               Synced Lyrics.
@@ -92,6 +103,7 @@
             </div>
           </div>
 
+          <div class="hero-intro-wrap" id="hero-intro-wrap">
           <div class="hero-sculpture-col">
             <div class="hardware-sculpture" id="hero-sculpture" aria-hidden="true">
               <div class="sculpture-housing">
@@ -118,6 +130,7 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
     </section>
@@ -135,6 +148,11 @@
     </section>
 
     <section class="showcase-track" id="showcase">
+      <!-- Scroll positions that select a chapter on touch layouts -->
+      <div class="showcase-step" data-step="0" aria-hidden="true"></div>
+      <div class="showcase-step" data-step="1" aria-hidden="true"></div>
+      <div class="showcase-step" data-step="2" aria-hidden="true"></div>
+
       <div class="showcase-sticky">
         <div class="showcase-ambient" aria-hidden="true"></div>
 
@@ -155,20 +173,20 @@
             <circle cx="600" cy="600" r="535" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
             <circle cx="600" cy="600" r="470" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
             <g id="giant-dial-ticks"></g>
-            <!-- Degree markers aligned cleanly with 0deg, +36deg, +72deg from top center -->
-            <g font-family="JetBrains Mono, monospace" font-size="14" font-weight="500" fill="rgba(255,255,255,0.72)" text-anchor="middle">
-              <text x="600" y="92">01</text>
-              <text x="898" y="189" transform="rotate(36 898 189)">02</text>
-              <text x="1083" y="443" transform="rotate(72 1083 443)">03</text>
+            <!-- Markers at 0, 36 and 72 degrees -->
+            <g class="dial-labels" font-family="JetBrains Mono, monospace" font-weight="500" fill="rgba(255,255,255,0.78)" text-anchor="middle">
+              <text x="600" y="78">01</text>
+              <text x="907" y="178" transform="rotate(36 907 178)">02</text>
+              <text x="1096" y="439" transform="rotate(72 1096 439)">03</text>
             </g>
           </svg>
         </div>
 
         <div class="showcase-stage-inner">
           <div class="cinema-video-shell" id="cinema-video-shell">
-            <video class="stage-video-layer is-active" data-video-idx="0" src="assets/ingame-demo.mp4" muted loop playsinline preload="metadata"></video>
-            <video class="stage-video-layer" data-video-idx="1" src="assets/widget-demo.mp4" muted loop playsinline preload="metadata"></video>
-            <video class="stage-video-layer" data-video-idx="2" src="assets/fullscreen-demo.mp4" muted loop playsinline preload="metadata"></video>
+            <video class="stage-video-layer is-active" data-video-idx="0" src="assets/ingame-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="1" src="assets/widget-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="2" src="assets/fullscreen-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
 
             <div class="cinema-hud">
               <button type="button" id="cinema-mute-btn" class="mute-btn" aria-label="Unmute active video">
@@ -205,7 +223,7 @@
 
           <div class="showcase-caption-row">
             <p class="showcase-caption" id="showcase-caption">
-              <strong>In-Game Overlay:</strong> Forza Horizon gameplay running with <code>Alt + L</code> click-through Gaming Mode and zero frame drops.
+              <strong>In-Game Overlay:</strong> Forza Horizon with Gaming Mode on and the overlay click-through (<code>Alt + L</code>).
             </p>
             <span class="showcase-hotkey-tag" id="showcase-hotkey">Alt + L &middot; Click-Through</span>
           </div>
@@ -218,12 +236,12 @@
         <div class="arch-grid reveal">
           <div class="arch-narrative">
             <div class="section-eyebrow">Architecture</div>
-            <h2>Native speed, zero wrapper tax.</h2>
+            <h2>Native WPF, no browser wrapper.</h2>
             <p>
-              Browser-based desktop apps wrap a full Chromium runtime just to draw text, burning 300–500 MB of memory in the background. LyricalWidget compiles natively on .NET 10 WPF so it stays invisible to your frame counter.
+              Browser-based desktop apps wrap a full Chromium runtime just to draw text, burning 300–500 MB of memory in the background. LyricalWidget is a native .NET 10 WPF app, so there is no browser to run next to your game.
             </p>
             <p>
-              Playback hooks directly into Windows SMTC with millisecond timing, races LRCLIB and NetEase in parallel with 30-day offline lyric caching, and checks GitHub Releases automatically in place.
+              Playback timing comes straight from Windows SMTC. Lyrics are requested from LRCLIB and NetEase in parallel and cached for 30 days. Updates come from GitHub Releases.
             </p>
           </div>
 
@@ -278,8 +296,8 @@
 
           <div class="explainer-grid">
             <div class="explainer-cell">
-              <h3>Instant SMTC Sync</h3>
-              <p>Auto-detects Spotify &amp; Windows media players with zero login.</p>
+              <h3>SMTC Sync</h3>
+              <p>Auto-detects Spotify &amp; Windows media players. No login.</p>
             </div>
             <div class="explainer-cell">
               <h3>Gaming Click-Through (Alt + L)</h3>
@@ -287,11 +305,11 @@
             </div>
             <div class="explainer-cell">
               <h3>60 FPS Fullscreen Visuals (Alt + F)</h3>
-              <p>LiveCode, SpotlightFog, and 1200&times;1200 HD artwork.</p>
+              <p>Moonlight Bloom, Live Code, Spotlight Fog and 1200&times;1200 artwork.</p>
             </div>
             <div class="explainer-cell">
-              <h3>Zero Bloat &amp; Auto-Updates</h3>
-              <p>Single portable .exe, no runtimes to install, updates from GitHub Releases.</p>
+              <h3>One File, Auto-Updates</h3>
+              <p>Nothing else to install. Updates come from GitHub Releases.</p>
             </div>
           </div>
 
@@ -304,7 +322,7 @@
               </svg>
               <span>Download for Windows</span>
             </a>
-            <div class="download-meta">v2.1.1 &middot; Windows 10 / 11 &middot; Standalone .exe &middot; Non-Commercial License</div>
+            <div class="download-meta">v2.5.0 &middot; Windows 10 / 11 &middot; Standalone .exe &middot; Non-Commercial License</div>
             <p class="smartscreen-note">
               Unsigned source-available app: click <strong>More info &rarr; Run anyway</strong> on first launch.
             </p>
@@ -322,22 +340,22 @@
           </div>
 
           <div class="legal-tabs" role="tablist" aria-label="Privacy and terms tabs">
-            <button type="button" class="legal-tab-btn" role="tab" aria-selected="true" data-legal-tab="privacy">Privacy &amp; Zero Data</button>
+            <button type="button" class="legal-tab-btn" role="tab" aria-selected="true" data-legal-tab="privacy">Privacy</button>
             <button type="button" class="legal-tab-btn" role="tab" aria-selected="false" data-legal-tab="terms">Terms of Service</button>
           </div>
         </div>
 
         <div class="legal-panel is-active reveal" id="legal-panel-privacy" role="tabpanel">
           <div class="legal-col">
-            <h3>Zero Telemetry. Zero Tracking.</h3>
+            <h3>No Telemetry, No Tracking</h3>
             <p>
-              LyricalWidget collects zero telemetry, zero analytics, and never tracks or sells your data. Song detection stays 100% local via Windows SMTC.
+              LyricalWidget has no telemetry or analytics and never tracks or sells your data. Song detection stays on your PC through Windows SMTC.
             </p>
           </div>
           <div class="legal-col">
-            <h3>Transparent Network Lookups</h3>
+            <h3>Network Requests</h3>
             <p>
-              Outbound requests are strictly lyric and artwork fetches (LRCLIB, NetEase, iTunes/Deezer) and GitHub Release checks. The full source is public on GitHub: feel free to inspect every line.
+              The only outbound requests are lyric and artwork lookups (LRCLIB, NetEase, iTunes/Deezer) and GitHub Release checks. The full source is on GitHub if you want to check.
             </p>
           </div>
         </div>

@@ -65,7 +65,6 @@ public sealed class KineticPhraseVisual
     public bool TriggerZoomPunch { get; set; } = false;
 
     public bool HasPortalLetter { get; set; } = false;
-    public Point PortalWorldCenter { get; set; }
 
     public ScaleTransform? ContainerScale { get; set; }
     public double CurrentContainerScale { get; set; } = 1.0;
@@ -109,7 +108,6 @@ public sealed class KineticPhraseVisual
 
     public void Update(TimeSpan effectivePos, double dt, double currentTimeSec, double bassEnergy, double beatImpulse)
     {
-        // Smooth container emergence scale (0.90 -> 1.0)
         if (CurrentContainerScale < 0.999)
         {
             CurrentContainerScale += (1.0 - CurrentContainerScale) * Math.Min(1.0, 16.0 * dt);
@@ -142,14 +140,13 @@ public sealed class KineticPhraseVisual
                 }
 
                 double elapsed = Math.Max(0.0, currentTimeSec - w.TriggerTimeSec);
-                // Fluid duration between 220ms and 320ms based on word duration
                 double enterDur = Math.Clamp((w.EndTime - w.StartTime).TotalSeconds * 0.85, 0.22, 0.32);
 
                 double rawT = Math.Clamp(elapsed / enterDur, 0.0, 1.0);
                 // Ease-out cubic curve: 1 - (1 - t)^3
                 double easeT = 1.0 - Math.Pow(1.0 - rawT, 3.0);
 
-                // Monotonic progress latching: progress never decreases
+                // Progress never goes back
                 WordProgress[i] = Math.Max(WordProgress[i], easeT);
                 double p = WordProgress[i];
                 w.Progress = p;
@@ -199,11 +196,6 @@ public sealed class KineticPhraseVisual
                 }
             }
         }
-    }
-
-    public void SetDimmed(double opacity)
-    {
-        Container.Opacity = Math.Clamp(opacity, 0.0, 1.0);
     }
 
     public KineticWordItem? GetActiveWord(TimeSpan effectivePos)

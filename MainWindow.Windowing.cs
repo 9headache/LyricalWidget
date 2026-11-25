@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -10,15 +6,8 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using LyricalWidget.Audio;
 using LyricalWidget.Common;
 using LyricalWidget.Interop;
-using LyricalWidget.Lyrics;
-using LyricalWidget.Media;
-using LyricalWidget.Rendering;
 using LyricalWidget.Services;
 
 namespace LyricalWidget;
@@ -30,6 +19,8 @@ public partial class MainWindow : Window
     private bool _isLocked = false;
     private bool _isManuallyHidden = false;
     private bool _isAutoHidden = false;
+    private bool _forceIdleClock = false;
+    private bool ShowsIdleClockWhenHidden => _forceIdleClock || _settings.ShowIdleClock;
 
     private void RestoreSettings()
     {
@@ -70,6 +61,7 @@ public partial class MainWindow : Window
 
         ChkThemeLyrics.IsChecked = _settings.ThemeColoredLyrics;
         ChkAutoHide.IsChecked = _settings.AutoHideWhenPaused;
+        ChkPacingPill.IsChecked = _settings.ShowKineticPacingPill;
         ChkIdleClock.IsChecked = _settings.ShowIdleClock;
         ChkSubLines.IsChecked = _settings.ShowSubLines;
         ChkAudioReactive.IsChecked = _settings.AudioReactiveGlow;
@@ -95,14 +87,13 @@ public partial class MainWindow : Window
 
         NativeMethods.EnableToolWindowStyle(_hwnd);
 
-        // Register Global Hotkeys with automatic fallback for Alt + L
+        // Alt+L is often taken by other apps, so there are two fallbacks
         string lockShortcutText = "Alt+L";
         bool lockRegistered = NativeMethods.RegisterHotKey(_hwnd, NativeMethods.HOTKEY_ID_LOCK_TOGGLE,
             NativeMethods.MOD_ALT | NativeMethods.MOD_NOREPEAT, NativeMethods.VK_L);
 
         if (!lockRegistered)
         {
-            // Fallback 1: Ctrl + Alt + L
             lockRegistered = NativeMethods.RegisterHotKey(_hwnd, NativeMethods.HOTKEY_ID_LOCK_TOGGLE,
                 NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT | NativeMethods.MOD_NOREPEAT, NativeMethods.VK_L);
             if (lockRegistered)
@@ -111,7 +102,6 @@ public partial class MainWindow : Window
             }
             else
             {
-                // Fallback 2: Alt + Shift + L
                 lockRegistered = NativeMethods.RegisterHotKey(_hwnd, NativeMethods.HOTKEY_ID_LOCK_TOGGLE,
                     NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT | NativeMethods.MOD_NOREPEAT, NativeMethods.VK_L);
                 if (lockRegistered)
@@ -184,6 +174,10 @@ public partial class MainWindow : Window
         _trayService.FpsCapToggled += fps => Dispatcher.Invoke(() => SetFpsCap(fps));
         _trayService.ShowStartupGuideRequested += () => Dispatcher.Invoke(ShowStartupGuide);
         _trayService.WhatsNewRequested += () => Dispatcher.Invoke(ShowWhatsNew);
+        _trayService.BrowserMediaBehaviorSelected += behavior => Dispatcher.Invoke(() => SetBrowserMediaBehavior(behavior));
+        _trayService.VibeMonitorSelected += device => Dispatcher.Invoke(() => SetPreferredVibeMonitor(device));
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+        RefreshVibeMonitors();
         _trayService.ResetPositionRequested += () => Dispatcher.Invoke(ResetOverlayPosition);
         _trayService.ReportBugRequested += () => Dispatcher.Invoke(ShowBugReporter);
         _trayService.ClearLyricsCacheRequested += () => _lyricsService.ClearCache();
@@ -193,6 +187,7 @@ public partial class MainWindow : Window
         _trayService.UpdateBackgroundStyleState(_settings.BackgroundStyle);
         _trayService.UpdateAnimationStyleState(_settings.AnimationStyle);
         _trayService.UpdateThemeColoredLyricsState(_settings.ThemeColoredLyrics);
+        _trayService.UpdateBrowserMediaState(_settings.BrowserMediaBehavior);
         _trayService.UpdateAutoHideState(_settings.AutoHideWhenPaused);
         _trayService.UpdateIdleClockState(_settings.ShowIdleClock);
         _trayService.UpdateSubLinesState(_settings.ShowSubLines);
@@ -207,7 +202,6 @@ public partial class MainWindow : Window
         ApplyLockState(_isLocked);
         ApplyDisplayModeAndTheme();
     }
-
 
     private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -258,97 +252,6 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
-    private void HandleWindowMoving(IntPtr hwnd, IntPtr lParam)
-    {
-        if (lParam == IntPtr.Zero) return;
-        var rect = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.RECT>(lParam);
-
-        IntPtr hMonitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
-        var mi = new NativeMethods.MONITORINFO();
-        mi.cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-
-        if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
-
-        var work = mi.rcWork;
-        int width = rect.Right - rect.Left;
-        int height = rect.Bottom - rect.Top;
-
-        int workLeft = work.Left;
-        int workTop = work.Top;
-        int workRight = work.Right;
-        int workBottom = work.Bottom;
-
-        int workCenterX = workLeft + (workRight - workLeft) / 2;
-        int workCenterY = workTop + (workBottom - workTop) / 2;
-
-        int winCenterX = rect.Left + width / 2;
-        int winCenterY = rect.Top + height / 2;
-
-        const int snapThreshold = 14;
-
-        bool snapL = false, snapR = false, snapT = false, snapB = false, snapCX = false, snapCY = false;
-
-        // Horizontal snapping
-        if (Math.Abs(rect.Left - workLeft) <= snapThreshold)
-        {
-            rect.Left = workLeft;
-            rect.Right = workLeft + width;
-            snapL = true;
-        }
-        else if (Math.Abs(rect.Right - workRight) <= snapThreshold)
-        {
-            rect.Right = workRight;
-            rect.Left = workRight - width;
-            snapR = true;
-        }
-        else if (Math.Abs(winCenterX - workCenterX) <= snapThreshold)
-        {
-            rect.Left = workCenterX - width / 2;
-            rect.Right = rect.Left + width;
-            snapCX = true;
-        }
-
-        // Vertical snapping
-        if (Math.Abs(rect.Top - workTop) <= snapThreshold)
-        {
-            rect.Top = workTop;
-            rect.Bottom = workTop + height;
-            snapT = true;
-        }
-        else if (Math.Abs(rect.Bottom - workBottom) <= snapThreshold)
-        {
-            rect.Bottom = workBottom;
-            rect.Top = workBottom - height;
-            snapB = true;
-        }
-        else if (Math.Abs(winCenterY - workCenterY) <= snapThreshold)
-        {
-            rect.Top = workCenterY - height / 2;
-            rect.Bottom = rect.Top + height;
-            snapCY = true;
-        }
-
-        System.Runtime.InteropServices.Marshal.StructureToPtr(rect, lParam, true);
-
-        SnapGuideLeft.Visibility = snapL ? Visibility.Visible : Visibility.Collapsed;
-        SnapGuideRight.Visibility = snapR ? Visibility.Visible : Visibility.Collapsed;
-        SnapGuideTop.Visibility = snapT ? Visibility.Visible : Visibility.Collapsed;
-        SnapGuideBottom.Visibility = snapB ? Visibility.Visible : Visibility.Collapsed;
-        SnapGuideCenterX.Visibility = snapCX ? Visibility.Visible : Visibility.Collapsed;
-        SnapGuideCenterY.Visibility = snapCY ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void HideAllSnapGuides()
-    {
-        SnapGuideLeft.Visibility = Visibility.Collapsed;
-        SnapGuideRight.Visibility = Visibility.Collapsed;
-        SnapGuideTop.Visibility = Visibility.Collapsed;
-        SnapGuideBottom.Visibility = Visibility.Collapsed;
-        SnapGuideCenterX.Visibility = Visibility.Collapsed;
-        SnapGuideCenterY.Visibility = Visibility.Collapsed;
-    }
-
-
     private void OnPlaybackStateChanged(object? sender, bool isPlaying)
     {
         Dispatcher.InvokeAsync(() =>
@@ -368,7 +271,9 @@ public partial class MainWindow : Window
 
     private void UpdateAutoHideState(bool isPlaying)
     {
-        bool shouldAutoHide = _settings.AutoHideWhenPaused && (!isPlaying || !_mediaService.CurrentTrack.IsValid);
+        // Browser modes show the clock on their own, independent of the auto-hide settings
+        _forceIdleClock = _clockForBrowser || (_mediaService.IsBrowserSuppressed && !isPlaying);
+        bool shouldAutoHide = _forceIdleClock || _settings.AutoHideWhenPaused && (!isPlaying || !_mediaService.CurrentTrack.IsValid);
         _isAutoHidden = shouldAutoHide;
         ApplyEffectiveVisibility();
     }
@@ -389,14 +294,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Window must be physically visible in WPF/DWM
         if (Visibility != Visibility.Visible)
         {
             Visibility = Visibility.Visible;
         }
         _trayService?.UpdateVisibilityState(true);
 
-        bool showIdleClock = _settings.AutoHideWhenPaused && _settings.ShowIdleClock && _isAutoHidden;
+        bool showIdleClock = _isAutoHidden && (_forceIdleClock || (_settings.AutoHideWhenPaused && _settings.ShowIdleClock));
 
         if (_isAutoHidden)
         {
@@ -416,14 +320,13 @@ public partial class MainWindow : Window
             {
                 TransitionFromIdleClock();
 
-                // Smoothly animate the root container opacity to 0.0 over 250ms
                 var fadeOut = new DoubleAnimation(CardBorder.Opacity, 0.0, TimeSpan.FromMilliseconds(250))
                 {
                     EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
                 };
                 fadeOut.Completed += (s, e) =>
                 {
-                    if (_isAutoHidden && !_settings.ShowIdleClock)
+                    if (_isAutoHidden && !ShowsIdleClockWhenHidden)
                     {
                         StopRenderingLoop();
                     }
@@ -433,7 +336,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Resumed / normal playback
             EnsureTopmost();
             EnsureRenderingSubscribed();
             TransitionFromIdleClock();
@@ -446,202 +348,48 @@ public partial class MainWindow : Window
         }
     }
 
-    private bool _isInIdleClockMode = false;
-
-    private void TransitionToIdleClock()
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
     {
-        if (IsFullscreenActive) return;
-        if (_isInIdleClockMode) return;
-        _isInIdleClockMode = true;
-
-        Background = Brushes.Transparent;
-
-        // Cancel in-progress animations on both roots before transition
-        MediaContentRoot.BeginAnimation(UIElement.OpacityProperty, null);
-        IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, null);
-
-        var fadeOutMedia = new DoubleAnimation(MediaContentRoot.Opacity, 0.0, TimeSpan.FromMilliseconds(220))
+        Dispatcher.BeginInvoke(new Action(() =>
         {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-        };
-        fadeOutMedia.Completed += (s, e) =>
-        {
-            if (_isInIdleClockMode)
-            {
-                MediaContentRoot.Visibility = Visibility.Collapsed;
-            }
-        };
-        MediaContentRoot.BeginAnimation(UIElement.OpacityProperty, fadeOutMedia);
-
-        IdleClockRoot.Visibility = Visibility.Visible;
-        var fadeInClock = new DoubleAnimation(IdleClockRoot.Opacity, 1.0, TimeSpan.FromMilliseconds(260))
-        {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-        IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, fadeInClock);
-
-        ApplyIdleClockStyling();
-        UpdateClockTime(0.016, forceUpdate: true);
+            if (!_isClosing) RefreshVibeMonitors();
+        }));
     }
 
-    private void ApplyIdleClockStyling()
+    private void SetPreferredVibeMonitor(string deviceName)
     {
-        if (!_isInIdleClockMode) return;
+        _settings.PreferredVibeMonitor = deviceName;
+        SettingsService.Save(_settings);
+        _vibeWindow?.MoveToMonitor(deviceName);
+        RefreshVibeMonitors();
+    }
 
-        if (_settings.BackgroundStyle == "Glass")
+    /// <summary>Rebuilds the Vibe display choices. With one display there is nothing to choose, so they stay hidden.</summary>
+    private void RefreshVibeMonitors()
+    {
+        var monitors = MonitorService.GetMonitors();
+        string? selected = MonitorService.Resolve(monitors, _settings.PreferredVibeMonitor)?.DeviceName;
+        _trayService?.UpdateVibeMonitors(monitors, selected);
+
+        VibeMonitorOptions.Children.Clear();
+        VibeMonitorRow.Visibility = monitors.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (monitors.Count < 2) return;
+
+        foreach (var monitor in monitors)
         {
-            CardBorder.Background = new SolidColorBrush(Color.FromArgb(0xDD, 0x0A, 0x0C, 0x12));
-            GlassBackgroundContainer.Visibility = Visibility.Visible;
-            CardBorder.BorderThickness = new Thickness(1);
-            CardBorder.BorderBrush = BuildSpecularBrush(_currentAccentColor);
-            CardDropShadow.Opacity = _settings.GamingMode ? 0.0 : 0.5;
-        }
-        else
-        {
-            CardBorder.Background = Brushes.Transparent;
-            GlassBackgroundContainer.Visibility = Visibility.Collapsed;
-            CardBorder.BorderThickness = new Thickness(0);
-            CardBorder.BorderBrush = Brushes.Transparent;
-            CardDropShadow.Opacity = 0.0;
+            bool isSelected = monitor.DeviceName == selected;
+            var button = new Button
+            {
+                Content = monitor.Label,
+                Style = (Style)FindResource("ToolbarPillButton"),
+                Margin = new Thickness(0, 0, 3, 0),
+                Background = new SolidColorBrush(isSelected ? Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+                BorderBrush = new SolidColorBrush(isSelected ? Color.FromRgb(0xD4, 0xD4, 0xD8) : Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF))
+            };
+            button.Click += (s, e) => SetPreferredVibeMonitor(monitor.DeviceName);
+            VibeMonitorOptions.Children.Add(button);
         }
     }
-
-    private void TransitionFromIdleClock()
-    {
-        Background = Brushes.Transparent;
-        if (IsFullscreenActive) return;
-        if (!_isInIdleClockMode)
-        {
-            if (IdleClockRoot.Visibility != Visibility.Collapsed)
-            {
-                IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, null);
-                IdleClockRoot.Visibility = Visibility.Collapsed;
-                IdleClockRoot.Opacity = 0.0;
-            }
-            if (MediaContentRoot.Visibility != Visibility.Visible)
-            {
-                MediaContentRoot.Visibility = Visibility.Visible;
-                MediaContentRoot.Opacity = 1.0;
-            }
-            return;
-        }
-        _isInIdleClockMode = false;
-
-        // Cancel in-progress animations on both roots before transition
-        MediaContentRoot.BeginAnimation(UIElement.OpacityProperty, null);
-        IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, null);
-
-        var fadeOutClock = new DoubleAnimation(IdleClockRoot.Opacity, 0.0, TimeSpan.FromMilliseconds(200))
-        {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-        };
-        fadeOutClock.Completed += (s, e) =>
-        {
-            if (!_isInIdleClockMode)
-            {
-                IdleClockRoot.Visibility = Visibility.Collapsed;
-            }
-        };
-        IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, fadeOutClock);
-
-        MediaContentRoot.Visibility = Visibility.Visible;
-        var fadeInMedia = new DoubleAnimation(MediaContentRoot.Opacity, 1.0, TimeSpan.FromMilliseconds(260))
-        {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-        MediaContentRoot.BeginAnimation(UIElement.OpacityProperty, fadeInMedia);
-
-        ApplyDisplayModeAndTheme();
-    }
-
-    private class ClockDigitSlot
-    {
-        public TextBlock CurrentBlock { get; set; } = null!;
-        public TextBlock NextBlock { get; set; } = null!;
-        public char DisplayedChar { get; set; } = ' ';
-        public char TargetChar { get; set; } = ' ';
-        public double CurrentY = 0.0;
-        public double VelocityY = 0.0;
-        public bool IsRolling { get; set; } = false;
-    }
-
-    private ClockDigitSlot[]? _clockSlots;
-
-    private void EnsureClockSlotsInitialized()
-    {
-        if (_clockSlots != null) return;
-        _clockSlots = new ClockDigitSlot[]
-        {
-            new() { CurrentBlock = ClockH1Current, NextBlock = ClockH1Next },
-            new() { CurrentBlock = ClockH2Current, NextBlock = ClockH2Next },
-            new() { CurrentBlock = ClockM1Current, NextBlock = ClockM1Next },
-            new() { CurrentBlock = ClockM2Current, NextBlock = ClockM2Next }
-        };
-    }
-
-    private void UpdateClockTime(double dt, bool forceUpdate = false)
-    {
-        EnsureClockSlotsInitialized();
-        if (_clockSlots == null) return;
-
-        var now = DateTime.Now;
-        string timeStr = now.ToString("HHmm");
-        IdleClockDateText.Text = now.ToString("dddd, MMMM d");
-
-        for (int i = 0; i < 4; i++)
-        {
-            var slot = _clockSlots[i];
-            char c = timeStr[i];
-
-            if (forceUpdate || slot.DisplayedChar == ' ')
-            {
-                slot.DisplayedChar = c;
-                slot.TargetChar = c;
-                slot.CurrentBlock.Text = c.ToString();
-                Canvas.SetTop(slot.CurrentBlock, 0);
-                slot.CurrentBlock.Opacity = 1.0;
-                Canvas.SetTop(slot.NextBlock, 58.0);
-                slot.NextBlock.Opacity = 0.0;
-                slot.IsRolling = false;
-                slot.CurrentY = 0.0;
-                slot.VelocityY = 0.0;
-            }
-            else if (slot.TargetChar != c && !slot.IsRolling)
-            {
-                slot.TargetChar = c;
-                slot.NextBlock.Text = c.ToString();
-                slot.CurrentY = 0.0;
-                slot.VelocityY = 0.0;
-                slot.IsRolling = true;
-            }
-
-            if (slot.IsRolling)
-            {
-                bool settled = SpringLineFluid.Step(ref slot.CurrentY, ref slot.VelocityY, -58.0, dt, 0.5);
-
-                double progress = Math.Clamp(-slot.CurrentY / 58.0, 0.0, 1.0);
-                Canvas.SetTop(slot.CurrentBlock, slot.CurrentY);
-                slot.CurrentBlock.Opacity = 1.0 - progress;
-
-                Canvas.SetTop(slot.NextBlock, 58.0 + slot.CurrentY);
-                slot.NextBlock.Opacity = progress;
-
-                if (settled || progress >= 0.99)
-                {
-                    slot.DisplayedChar = slot.TargetChar;
-                    slot.CurrentBlock.Text = slot.TargetChar.ToString();
-                    Canvas.SetTop(slot.CurrentBlock, 0);
-                    slot.CurrentBlock.Opacity = 1.0;
-                    Canvas.SetTop(slot.NextBlock, 58.0);
-                    slot.NextBlock.Opacity = 0.0;
-                    slot.IsRolling = false;
-                    slot.CurrentY = 0.0;
-                    slot.VelocityY = 0.0;
-                }
-            }
-        }
-    }
-
 
     public void ToggleLock()
     {
@@ -729,7 +477,6 @@ public partial class MainWindow : Window
         SettingsService.Save(_settings);
     }
 
-
     public void EnsureTopmost()
     {
         if (IsFullscreenActive) return;
@@ -741,7 +488,6 @@ public partial class MainWindow : Window
                 NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
         }
     }
-
 
     public void ResetOverlayPosition()
     {
@@ -766,5 +512,4 @@ public partial class MainWindow : Window
         EnsureTopmost();
         SaveCurrentBounds();
     }
-
 }

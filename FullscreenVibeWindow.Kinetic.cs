@@ -1,23 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using LyricalWidget.Audio;
-using LyricalWidget.Common;
 using LyricalWidget.Lyrics;
-using LyricalWidget.Media;
-using LyricalWidget.Rendering;
-using LyricalWidget.Services;
 
 namespace LyricalWidget;
 
@@ -59,6 +47,12 @@ public partial class FullscreenVibeWindow : Window
                 return;
             }
 
+            if (_currentKineticPreset == KineticPreset.MoonlightBloom)
+            {
+                _moonlightRenderer.UpdateFrame(dt, effectivePos, _mediaService.IsPlaying, _currentBeatImpulse, _audioBeatService.SnareImpulse);
+                return;
+            }
+
             if (_currentKineticPreset == KineticPreset.LiveCode)
             {
                 _liveCodeRenderer.UpdateFrame(
@@ -72,11 +66,9 @@ public partial class FullscreenVibeWindow : Window
                 return;
             }
 
-        // 2D Virtual Camera World update with smooth exponential damping
             _cameraController.Update(dt, _timeElapsedSec, _currentBassEnergy, _currentBeatImpulse, _kineticVibe);
             _cameraController.ApplyMatrix(ActualWidth, ActualHeight, WorldCameraMatrix, _timeElapsedSec);
 
-            // Smooth 150ms interpolation for PosterBackdrop brush color
             if (PosterBackdrop.Visibility == Visibility.Visible && _targetPosterBackdropColor.A > 0)
             {
                 if (_currentPosterBackdropColor != _targetPosterBackdropColor)
@@ -97,7 +89,7 @@ public partial class FullscreenVibeWindow : Window
 
             if (isUserSeek)
             {
-                // Genuine user seek (> 250ms jump): clear canvas & phrases, increment epoch
+                // A real seek, not clock jitter: rebuild from scratch
                 _kineticRenderEpoch++;
                 _worldPhrases.Clear();
                 KineticWorldCanvas.Children.Clear();
@@ -125,11 +117,11 @@ public partial class FullscreenVibeWindow : Window
                     }
                 }
 
-                // Guard against slight backward SMTC timestamp jitter under 800ms
+                // SMTC timestamps can jitter backwards
                 double drift = _lastKineticClockMs - curClockMs;
                 if (drift > 0 && drift < 800)
                 {
-                    // Clamp to monotonic time to prevent re-triggering lines/words
+                    // Hold the clock so lines and words are not triggered twice
                     curClockMs = _lastKineticClockMs;
                     effectivePos = TimeSpan.FromMilliseconds(curClockMs);
                 }
@@ -143,13 +135,12 @@ public partial class FullscreenVibeWindow : Window
             int rawIndex = FindCurrentLyricLineIndex(_currentLyrics.Lines, effectivePos);
             int targetLineIndex = rawIndex;
 
-            // Strict Latching: during gaps after a line ends, or small backward jitter, NEVER decrement line index
+            // The line index never goes back during gaps or small backward jitter
             if (!isUserSeek && _currentKineticActiveIndex >= 0 && targetLineIndex < _currentKineticActiveIndex)
             {
                 targetLineIndex = _currentKineticActiveIndex;
             }
 
-            // NEVER rebuild or re-animate a line if targetLineIndex == _currentKineticActiveIndex
             if (targetLineIndex >= 0 && targetLineIndex < _currentLyrics.Lines.Count && targetLineIndex != _currentKineticActiveIndex)
             {
                 _currentKineticActiveIndex = targetLineIndex;
@@ -202,7 +193,6 @@ public partial class FullscreenVibeWindow : Window
                     _currentPosterBackdropColor = Colors.Transparent;
                 }
 
-                // Place container on canvas, guarantee Visibility, Opacity, and top ZIndex
                 Canvas.SetLeft(newPhrase.Container, newPhrase.WorldAnchor.X - (newPhrase.VisualSize.Width * 0.5));
                 Canvas.SetTop(newPhrase.Container, newPhrase.WorldAnchor.Y - (newPhrase.VisualSize.Height * 0.5));
                 Panel.SetZIndex(newPhrase.Container, 2);
@@ -210,7 +200,7 @@ public partial class FullscreenVibeWindow : Window
                 newPhrase.Container.Opacity = 1.0;
                 newPhrase.IsExiting = false;
 
-                // If seeking/jumping mid-line, instantly reveal all words up to effectivePos
+                // Landed mid-line after a seek: show everything sung so far at once
                 if (isUserSeek)
                 {
                     newPhrase.CatchUpToTime(effectivePos);
@@ -219,7 +209,6 @@ public partial class FullscreenVibeWindow : Window
                 KineticWorldCanvas.Children.Add(newPhrase.Container);
                 _worldPhrases.Add(newPhrase);
 
-                // Mark older phrases as exiting and lower ZIndex
                 for (int i = 0; i < _worldPhrases.Count - 1; i++)
                 {
                     _worldPhrases[i].IsExiting = true;
@@ -236,11 +225,10 @@ public partial class FullscreenVibeWindow : Window
                     }
                 }
 
-                // Dynamic camera transition speed based on line duration
                 double lineDurMs = Math.Max(250.0, (line.EndTime - line.Timestamp).TotalMilliseconds);
                 _cameraController.FocusPhrase(newPhrase, lineDurMs);
 
-                // Asynchronous Lookahead Pre-build: pre-build next line (targetLineIndex + 1)
+                // Build the next line ahead of time so the switch does not hitch
                 int nextIndex = targetLineIndex + 1;
                 if (nextIndex < _currentLyrics.Lines.Count)
                 {
@@ -271,7 +259,6 @@ public partial class FullscreenVibeWindow : Window
                 }
             }
 
-            // Word nudging & continuous zoom creep (1.00 -> 1.04) over active phrase
             if (_worldPhrases.Count > 0)
             {
                 var activePhrase = _worldPhrases[^1];
@@ -301,7 +288,6 @@ public partial class FullscreenVibeWindow : Window
                     }
                 }
 
-                // Continuous zoom creep over line duration so camera is never static
                 double totalSpan = (activePhrase.LineEndTime - activePhrase.LineStartTime).TotalSeconds;
                 if (totalSpan > 0.2)
                 {
@@ -310,7 +296,6 @@ public partial class FullscreenVibeWindow : Window
                     _cameraController.SetZoomCreep(progressRatio);
                 }
 
-                // Subtly pan camera along active word/row
                 var activeWord = activePhrase.GetActiveWord(effectivePos);
                 if (activeWord != null)
                 {
@@ -319,7 +304,7 @@ public partial class FullscreenVibeWindow : Window
                 }
             }
 
-            // Hard cap to strictly max 2 phrases in canvas (the active one and the exiting one)
+            // At most the active phrase and the one leaving
             while (_worldPhrases.Count > 2)
             {
                 var oldest = _worldPhrases[0];
@@ -327,12 +312,11 @@ public partial class FullscreenVibeWindow : Window
                 _worldPhrases.RemoveAt(0);
             }
 
-            // Smooth 60 FPS transitions: update phrases and smoothly fade out exiting phrases
             for (int i = _worldPhrases.Count - 1; i >= 0; i--)
             {
                 var p = _worldPhrases[i];
 
-                // True Letter Fly-Through Portal Transition
+                // Fly through the portal letter
                 if (p.IsPosterMode && p.HasPortalLetter && p.ContainerScale != null && p.Container.Tag is PosterTransitionInfo portalInfo)
                 {
                     double remainingMs = (p.LineEndTime - effectivePos).TotalMilliseconds;
@@ -380,5 +364,4 @@ public partial class FullscreenVibeWindow : Window
             Debug.WriteLine($"[UpdateKineticFrame] Error in preset {_currentKineticPreset}: {ex.Message}");
         }
     }
-
 }

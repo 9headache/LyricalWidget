@@ -125,9 +125,7 @@
                 <!-- Top Sheen Highlight -->
                 <Border VerticalAlignment="Top" Height="1" Margin="24,0,24,0" Background="{StaticResource TopSheenBrush}"/>
 
-                <!-- ========================================== -->
-                <!-- 1. FULL FIRST-BOOT GUIDE (Interactive)     -->
-                <!-- ========================================== -->
+                <!-- First-boot guide -->
                 <Grid x:Name="FullGuideCard" Visibility="Visible" Width="520" Margin="26,24,26,24">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Header -->
@@ -210,7 +208,7 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="Fullscreen Vibe Mode" FontSize="12.5" FontWeight="SemiBold" Foreground="#E4E4E7"/>
-                                            <TextBlock Text="Album controls, volume bar and Kinetic Mode (Beta) via K" FontSize="11.5" Foreground="#A1A1AA" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                            <TextBlock Text="Album controls, volume bar and Kinetic Mode via K" FontSize="11.5" Foreground="#A1A1AA" TextWrapping="Wrap" Margin="0,1,0,0"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -305,9 +303,7 @@
                     </Grid>
                 </Grid>
 
-                <!-- ========================================== -->
-                <!-- 2. RETURNING QUICK SPLASH PILL (Compact)   -->
-                <!-- ========================================== -->
+                <!-- Returning-user splash -->
                 <Grid x:Name="QuickSplashCard" Visibility="Collapsed" Width="320" Margin="16,14,16,14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>

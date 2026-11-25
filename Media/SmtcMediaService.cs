@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -8,85 +7,17 @@ using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
+using LyricalWidget.Common;
+using LyricalWidget.Services;
 
 namespace LyricalWidget.Media;
 
-public class TrackInfo
-{
-    public string Title { get; set; } = string.Empty;
-    public string Artist { get; set; } = string.Empty;
-    public string Album { get; set; } = string.Empty;
-    public BitmapImage? Thumbnail { get; set; }
-    public TimeSpan Duration { get; set; } = TimeSpan.Zero;
-    public bool IsPlaying { get; set; }
-    public string SourceAppId { get; set; } = string.Empty;
-
-    public bool IsValid => !string.IsNullOrWhiteSpace(Title);
-
-    public bool IsDjOrInterstitial
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Title)) return true;
-
-            string t = Title.Trim();
-            string a = Artist.Trim();
-            double durSec = Duration.TotalSeconds;
-
-            // Title exact matches
-            if (t.Equals("DJ", StringComparison.OrdinalIgnoreCase) ||
-                t.Equals("DJ X", StringComparison.OrdinalIgnoreCase) ||
-                t.Equals("Advertisement", StringComparison.OrdinalIgnoreCase) ||
-                t.Equals("Spotify", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            // Artist is "Spotify" or empty while duration is 0 or under 18 seconds
-            if ((string.IsNullOrWhiteSpace(a) || a.Equals("Spotify", StringComparison.OrdinalIgnoreCase)) &&
-                durSec <= 18.0)
-            {
-                return true;
-            }
-
-            // Known DJ interstitial / commentary patterns
-            if (t.StartsWith("DJ ", StringComparison.OrdinalIgnoreCase) ||
-                t.Contains("DJ Commentary", StringComparison.OrdinalIgnoreCase) ||
-                t.Contains("Spotify DJ", StringComparison.OrdinalIgnoreCase) ||
-                t.Contains("Audio Ad", StringComparison.OrdinalIgnoreCase) ||
-                t.Contains("Advertisement", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (a.Equals("DJ", StringComparison.OrdinalIgnoreCase) ||
-                a.Equals("DJ X", StringComparison.OrdinalIgnoreCase) ||
-                a.Contains("Spotify DJ", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    public string CacheKey
-    {
-        get
-        {
-            int durSec = (int)Duration.TotalSeconds;
-            return $"{Artist}_{Title}_{Album}_{durSec}";
-        }
-    }
-}
-
-public class SmtcMediaService : IDisposable
+public partial class SmtcMediaService : IDisposable
 {
     private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
     private readonly object _lock = new();
 
-    // Timestamp interpolation state
     private TimeSpan _basePosition = TimeSpan.Zero;
     private long _baseTimestampStopwatch = 0;
     private double _playbackRate = 1.0;
@@ -99,9 +30,21 @@ public class SmtcMediaService : IDisposable
     private Timer? _watchdogTimer;
     private int _isPolling = 0;
 
+    // Browser sessions report their duration late (ads, page loads): track it until it settles
+    private TimeSpan _pendingBrowserDuration = TimeSpan.Zero;
+    private int _pendingBrowserDurationTicks = 0;
+    private int _browserDurationRefreshes = 0;
+    private bool _nullSessionReported = false;
+
     public event EventHandler<TrackInfo>? TrackChanged;
     public event EventHandler<bool>? PlaybackStateChanged;
     public event EventHandler<TimeSpan>? TimelineResynced;
+    public event EventHandler? BrowserSuppressionChanged;
+
+    public BrowserMediaBehavior BrowserBehavior { get; set; } = BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
+
+    /// <summary>True while a browser session is being ignored and nothing else is playing.</summary>
+    public bool IsBrowserSuppressed { get; private set; }
 
     public TrackInfo CurrentTrack { get; private set; } = new();
 
@@ -133,14 +76,14 @@ public class SmtcMediaService : IDisposable
                                           (DateTimeOffset.UtcNow - _lastReportedSmtcTimestamp) >= TimeSpan.Zero;
 
                 TimeSpan current;
-                if (isLastUpdatedValid)
+                // Browsers only post a timeline on play/pause/seek and may play at other speeds, so run them off the local clock
+                if (isLastUpdatedValid && !CurrentTrack.IsBrowserSource)
                 {
-                    // Anchor directly to SMTC Position + (UtcNow - LastUpdatedTime)
                     current = _lastReportedRawPosition + (DateTimeOffset.UtcNow - _lastReportedSmtcTimestamp);
                 }
                 else
                 {
-                    // Fall back to local Stopwatch when LastUpdatedTime is invalid or frozen
+                    // LastUpdatedTime is invalid or frozen: run on the local clock
                     long elapsedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - _baseTimestampStopwatch;
                     double elapsedSeconds = (double)elapsedTicks / System.Diagnostics.Stopwatch.Frequency;
                     current = _basePosition + TimeSpan.FromSeconds(elapsedSeconds * _playbackRate);
@@ -164,7 +107,11 @@ public class SmtcMediaService : IDisposable
                appId.Contains("edge", StringComparison.OrdinalIgnoreCase) ||
                appId.Contains("firefox", StringComparison.OrdinalIgnoreCase) ||
                appId.Contains("brave", StringComparison.OrdinalIgnoreCase) ||
-               appId.Contains("opera", StringComparison.OrdinalIgnoreCase);
+               appId.Contains("opera", StringComparison.OrdinalIgnoreCase) ||
+               appId.Contains("vivaldi", StringComparison.OrdinalIgnoreCase) ||
+               // Installed Firefox builds register under a hash of their install path
+               appId.Contains("308046B0AF4A39CB", StringComparison.OrdinalIgnoreCase) ||
+               appId.Contains("E7CF176E110C211B", StringComparison.OrdinalIgnoreCase);
     }
 
     public static (string Title, string Artist) CleanWebMetadata(string rawTitle, string rawArtist, string appId)
@@ -174,6 +121,12 @@ public class SmtcMediaService : IDisposable
 
         title = Regex.Replace(title, @"\s*[-•|]\s*Spotify(\s+Free)?\s*$", "", RegexOptions.IgnoreCase).Trim();
         artist = Regex.Replace(artist, @"\s*[-•|]\s*Spotify(\s+Free)?\s*$", "", RegexOptions.IgnoreCase).Trim();
+
+        if (IsBrowserApp(appId))
+        {
+            var guesses = MetadataCleaner.ParseBrowserMedia(title, artist);
+            return guesses.Count > 0 ? (guesses[0].Title, guesses[0].Artist) : (title, artist);
+        }
 
         // If artist is empty or generic while title contains delimiters (" - " or " • ")
         bool isBrowser = IsBrowserApp(appId);
@@ -210,385 +163,22 @@ public class SmtcMediaService : IDisposable
         return (title, artist);
     }
 
-    public async Task<bool> TrySkipPreviousAsync()
-    {
-        GlobalSystemMediaTransportControlsSession? session;
-        lock (_lock) { session = _currentSession; }
-        if (session != null)
-        {
-            try
-            {
-                return await session.TrySkipPreviousAsync();
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] SkipPrevious COM error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] SkipPrevious error: {ex.Message}");
-            }
-        }
-        return false;
-    }
-
-    public async Task<bool> TryTogglePlayPauseAsync()
-    {
-        GlobalSystemMediaTransportControlsSession? session;
-        lock (_lock) { session = _currentSession; }
-        if (session != null)
-        {
-            try
-            {
-                return await session.TryTogglePlayPauseAsync();
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] TogglePlayPause COM error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] TogglePlayPause error: {ex.Message}");
-            }
-        }
-        return false;
-    }
-
-    public async Task<bool> TrySkipNextAsync()
-    {
-        GlobalSystemMediaTransportControlsSession? session;
-        lock (_lock) { session = _currentSession; }
-        if (session != null)
-        {
-            try
-            {
-                return await session.TrySkipNextAsync();
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] SkipNext COM error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] SkipNext error: {ex.Message}");
-            }
-        }
-        return false;
-    }
-
-    public async Task<bool> TrySeekAsync(TimeSpan position)
-    {
-        GlobalSystemMediaTransportControlsSession? session;
-        lock (_lock) { session = _currentSession; }
-        if (session != null)
-        {
-            try
-            {
-                long ticks = position.Ticks;
-                bool success = await session.TryChangePlaybackPositionAsync(ticks);
-                if (success)
-                {
-                    lock (_lock)
-                    {
-                        _basePosition = position;
-                        _baseTimestampStopwatch = System.Diagnostics.Stopwatch.GetTimestamp();
-                        _lastReportedRawPosition = position;
-                    }
-                    TimelineResynced?.Invoke(this, position);
-                }
-                return success;
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] Seek COM error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SMTC] Seek error: {ex.Message}");
-            }
-        }
-        return false;
-    }
-
     public async Task InitializeAsync()
     {
         try
         {
             await ReacquireSessionManagerAsync();
 
-            // Tight 250ms polling loop so track skips and seeks feel instant
+            // Polled as well: change events can arrive late or not at all
             _pollingTimer = new Timer(OnPollingTick, null, 250, 250);
 
-            // Lightweight 3-second health watchdog: auto re-binds if session/manager becomes invalid or PC wakes
+            // Re-binds if the session manager dies or the PC wakes
             _watchdogTimer = new Timer(OnWatchdogTick, null, 3000, 3000);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to initialize SMTC Session Manager: {ex.Message}");
         }
-    }
-
-    private async void OnWatchdogTick(object? state)
-    {
-        try
-        {
-            bool needsReacquire = false;
-            lock (_lock)
-            {
-                if (_sessionManager == null)
-                {
-                    needsReacquire = true;
-                }
-            }
-
-            if (!needsReacquire && _sessionManager != null)
-            {
-                try
-                {
-                    var sessions = _sessionManager.GetSessions();
-                    lock (_lock)
-                    {
-                        if (_currentSession == null && sessions.Count > 0)
-                        {
-                            EvaluateAndSelectBestSession();
-                        }
-                    }
-                }
-                catch (COMException)
-                {
-                    needsReacquire = true;
-                }
-                catch (Exception)
-                {
-                    needsReacquire = true;
-                }
-            }
-
-            if (needsReacquire)
-            {
-                await ReacquireSessionManagerAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Watchdog tick error: {ex.Message}");
-        }
-    }
-
-    public async Task ReacquireSessionManagerAsync()
-    {
-        try
-        {
-            lock (_lock)
-            {
-                if (_currentSession != null)
-                {
-                    try
-                    {
-                        _currentSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
-                        _currentSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
-                        _currentSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SMTC] Event unsubscription warning: {ex.Message}");
-                    }
-                    _currentSession = null;
-                }
-
-                if (_sessionManager != null)
-                {
-                    try
-                    {
-                        _sessionManager.CurrentSessionChanged -= OnCurrentSessionChanged;
-                        _sessionManager.SessionsChanged -= OnSessionsChanged;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SMTC] SessionManager event unsubscription warning: {ex.Message}");
-                    }
-                    _sessionManager = null;
-                }
-            }
-
-            var sm = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-            if (sm != null)
-            {
-                lock (_lock)
-                {
-                    _sessionManager = sm;
-                    try
-                    {
-                        _sessionManager.CurrentSessionChanged += OnCurrentSessionChanged;
-                        _sessionManager.SessionsChanged += OnSessionsChanged;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SMTC] SessionManager event subscription warning: {ex.Message}");
-                    }
-                }
-                EvaluateAndSelectBestSession();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Failed to reacquire SMTC Session Manager: {ex.Message}");
-        }
-    }
-
-    public async Task ForceReconnectAsync()
-    {
-        await ReacquireSessionManagerAsync();
-        await RefreshAllMediaDataAsync();
-    }
-
-    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
-    {
-        try
-        {
-            EvaluateAndSelectBestSession();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error handling SessionsChanged: {ex.Message}");
-        }
-    }
-
-    private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args)
-    {
-        try
-        {
-            EvaluateAndSelectBestSession();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error handling CurrentSessionChanged: {ex.Message}");
-        }
-    }
-
-    private void EvaluateAndSelectBestSession()
-    {
-        if (_sessionManager == null) return;
-
-        try
-        {
-            var sessions = _sessionManager.GetSessions();
-            GlobalSystemMediaTransportControlsSession? bestSession = null;
-            int bestScore = -100;
-
-            foreach (var session in sessions)
-            {
-                int score = ScoreSession(session);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestSession = session;
-                }
-            }
-
-            // Fallback to default current session if score is poor
-            if (bestSession == null)
-            {
-                bestSession = _sessionManager.GetCurrentSession();
-            }
-
-            UpdateCurrentSession(bestSession);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error selecting SMTC session: {ex.Message}");
-        }
-    }
-
-    private static int ScoreSession(GlobalSystemMediaTransportControlsSession session)
-    {
-        string appId = session.SourceAppUserModelId ?? string.Empty;
-        var playback = session.GetPlaybackInfo();
-        bool isPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-
-        int score = 0;
-
-        // Dedicated Spotify desktop app
-        if (appId.Contains("Spotify", StringComparison.OrdinalIgnoreCase))
-        {
-            score += 150;
-            if (isPlaying) score += 100;
-            return score;
-        }
-
-        // Other dedicated music desktop apps
-        if (appId.Contains("AppleMusic", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("TIDAL", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("MusicBee", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("AIMP", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("Foobar", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("Deezer", StringComparison.OrdinalIgnoreCase) ||
-            appId.Contains("AmazonMusic", StringComparison.OrdinalIgnoreCase))
-        {
-            score += 100;
-            if (isPlaying) score += 60;
-            return score;
-        }
-
-        // Video / Twitch streams to ignore or severely deprioritize
-        if (appId.Contains("Twitch", StringComparison.OrdinalIgnoreCase))
-        {
-            return -50;
-        }
-
-        // Generic browser sessions (Chrome, Edge, Firefox, Brave, Opera)
-        if (IsBrowserApp(appId))
-        {
-            // Actively playing browser session strongly preferred over paused tabs
-            score += isPlaying ? 80 : 5;
-            return score;
-        }
-
-        if (isPlaying) score += 30;
-        return score;
-    }
-
-    private void UpdateCurrentSession(GlobalSystemMediaTransportControlsSession? newSession)
-    {
-        lock (_lock)
-        {
-            if (_currentSession == newSession && _currentSession != null)
-            {
-                return;
-            }
-
-            if (_currentSession != null)
-            {
-                try
-                {
-                    _currentSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
-                    _currentSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
-                    _currentSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SMTC] Event unsubscription warning: {ex.Message}");
-                }
-            }
-
-            _currentSession = newSession;
-
-            if (_currentSession != null)
-            {
-                try
-                {
-                    _currentSession.MediaPropertiesChanged += OnMediaPropertiesChanged;
-                    _currentSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
-                    _currentSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to subscribe to session events: {ex.Message}");
-                }
-            }
-        }
-
-        _ = RefreshAllMediaDataAsync();
     }
 
     private async void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
@@ -651,8 +241,10 @@ public class SmtcMediaService : IDisposable
 
         if (session == null)
         {
+            lock (_lock) { _isPlaying = false; }
             CurrentTrack = new TrackInfo();
             TrackChanged?.Invoke(this, CurrentTrack);
+            PlaybackStateChanged?.Invoke(this, false);
             return;
         }
 
@@ -677,6 +269,15 @@ public class SmtcMediaService : IDisposable
                 Duration = timeline != null && timeline.EndTime > TimeSpan.Zero ? timeline.EndTime : TimeSpan.Zero,
                 IsPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
             };
+
+            if (newTrack.IsBrowserSource)
+            {
+                newTrack.LookupCandidates = MetadataCleaner.ParseBrowserMedia(rawTitle, rawArtist);
+                if (newTrack.Title != CurrentTrack.Title || newTrack.Artist != CurrentTrack.Artist)
+                {
+                    _browserDurationRefreshes = 0;
+                }
+            }
 
             BitmapImage? thumbnail = null;
             if (mediaProps?.Thumbnail != null)
@@ -707,7 +308,7 @@ public class SmtcMediaService : IDisposable
                 }
             }
 
-            // Safely handle delayed or null SMTC album thumbnails without throwing or clearing a valid cover prematurely
+            // Thumbnails can arrive late: keep the current cover until then
             if (thumbnail == null && CurrentTrack.Thumbnail != null &&
                 string.Equals(cleanedTitle, CurrentTrack.Title, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(cleanedArtist, CurrentTrack.Artist, StringComparison.OrdinalIgnoreCase))
@@ -721,10 +322,13 @@ public class SmtcMediaService : IDisposable
             lock (_lock)
             {
                 _trackDuration = newTrack.Duration;
-                // If the track changed, reset base position to 0 to prevent stale position from old song
                 _basePosition = TimeSpan.Zero;
                 _baseTimestampStopwatch = System.Diagnostics.Stopwatch.GetTimestamp();
                 _lastReportedRawPosition = TimeSpan.Zero;
+                if (newTrack.IsBrowserSource)
+                {
+                    _lastReportedSmtcTimestamp = DateTimeOffset.MinValue;
+                }
             }
 
             TrackChanged?.Invoke(this, newTrack);
@@ -796,13 +400,25 @@ public class SmtcMediaService : IDisposable
 
                 TimeSpan anchorPos = rawPos;
 
-                // Precision SMTC Clock: Accept valid recent LastUpdatedTime within 30 seconds
                 bool isLastUpdatedValid = lastUpdated > DateTimeOffset.MinValue &&
                                           lastUpdated <= DateTimeOffset.UtcNow.AddSeconds(1) &&
                                           (DateTimeOffset.UtcNow - lastUpdated).TotalSeconds <= 30.0 &&
                                           (DateTimeOffset.UtcNow - lastUpdated) >= TimeSpan.Zero;
 
-                if (_isPlaying && isLastUpdatedValid)
+                if (_isPlaying && CurrentTrack.IsBrowserSource)
+                {
+                    // Extrapolate from the last posted position however old it is, as long as it lands inside the video
+                    var age = DateTimeOffset.UtcNow - lastUpdated;
+                    if (age > TimeSpan.Zero && age < TimeSpan.FromHours(12))
+                    {
+                        var extrapolated = rawPos + (age * _playbackRate);
+                        if (timeline.EndTime <= TimeSpan.Zero || extrapolated <= timeline.EndTime)
+                        {
+                            anchorPos = extrapolated;
+                        }
+                    }
+                }
+                else if (_isPlaying && isLastUpdatedValid)
                 {
                     anchorPos += (DateTimeOffset.UtcNow - lastUpdated);
                 }
@@ -828,6 +444,35 @@ public class SmtcMediaService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Reloads a browser track once its reported length has changed and held still for a second.
+    /// Capped per title so a live stream's growing length cannot cause endless reloads.
+    /// </summary>
+    private async Task<bool> RefreshIfBrowserDurationSettledAsync(TimeSpan endTime)
+    {
+        var track = CurrentTrack;
+        if (!track.IsBrowserSource || endTime <= TimeSpan.Zero ||
+            _browserDurationRefreshes >= 3 || (endTime - track.Duration).Duration() <= TimeSpan.FromSeconds(2))
+        {
+            _pendingBrowserDurationTicks = 0;
+            return false;
+        }
+
+        if (endTime != _pendingBrowserDuration)
+        {
+            _pendingBrowserDuration = endTime;
+            _pendingBrowserDurationTicks = 0;
+            return false;
+        }
+
+        if (++_pendingBrowserDurationTicks < 4) return false;
+
+        _pendingBrowserDurationTicks = 0;
+        _browserDurationRefreshes++;
+        await RefreshAllMediaDataAsync();
+        return true;
+    }
+
     private async void OnPollingTick(object? state)
     {
         if (Interlocked.CompareExchange(ref _isPolling, 1, 0) != 0) return;
@@ -845,7 +490,6 @@ public class SmtcMediaService : IDisposable
                 return;
             }
 
-            // Fast detection of track changes (e.g. Spotify skipped to next song)
             var mediaProps = await session.TryGetMediaPropertiesAsync();
             if (mediaProps != null)
             {
@@ -858,7 +502,6 @@ public class SmtcMediaService : IDisposable
                 }
             }
 
-            // Fast check if playback status changed
             var playback = session.GetPlaybackInfo();
             if (playback != null)
             {
@@ -871,14 +514,14 @@ public class SmtcMediaService : IDisposable
                 }
             }
 
-            // 3. Fast check if timeline drifted or was sought
             var timeline = session.GetTimelineProperties();
             if (timeline != null)
             {
+                if (await RefreshIfBrowserDurationSettledAsync(timeline.EndTime)) return;
+
                 TimeSpan rawPos = timeline.Position;
                 DateTimeOffset lastUpdated = timeline.LastUpdatedTime;
 
-                // Ignore phantom 0 tab switches
                 if (!(_isPlaying && rawPos == TimeSpan.Zero && CurrentPosition > TimeSpan.FromSeconds(2.0)))
                 {
                     if (rawPos != _lastReportedRawPosition || lastUpdated != _lastReportedSmtcTimestamp || !_isPlaying)

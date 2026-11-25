@@ -7,3 +7,4 @@ settings.json
 *.user
 *.suo
 *.pdb
+*.local.md

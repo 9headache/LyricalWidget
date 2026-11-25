@@ -56,7 +56,7 @@ public partial class WelcomeWindow : Window
         {
             NativeMethods.EnableToolWindowStyle(hwnd);
 
-            // Returning quick splash is non-interactive click-through
+            // The returning-user splash is click-through
             if (!_isFirstBoot && !_isReplay)
             {
                 NativeMethods.SetClickThrough(hwnd, true);
@@ -68,7 +68,6 @@ public partial class WelcomeWindow : Window
     {
         if (!_isFirstBoot && !_isReplay)
         {
-            // Mode B: Returning-User Quick Splash (1.6s auto-dismiss)
             FullGuideCard.Visibility = Visibility.Collapsed;
             QuickSplashCard.Visibility = Visibility.Visible;
 
@@ -96,7 +95,6 @@ public partial class WelcomeWindow : Window
         }
         else
         {
-            // Mode A: First-Boot Full Guide or Replay
             FullGuideCard.Visibility = Visibility.Visible;
             QuickSplashCard.Visibility = Visibility.Collapsed;
 

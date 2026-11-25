@@ -14,7 +14,6 @@ namespace LyricalWidget.Lyrics;
 /// </summary>
 public sealed partial class KineticLayoutDirector
 {
-    // Editorial Windows Fonts
     private static readonly FontFamily SerifFont = new("Georgia, Palatino Linotype, Times New Roman, serif");
     private static readonly FontFamily SansLightFont = new("Segoe UI, Arial, sans-serif");
     private static readonly FontFamily SansBoldFont = new("Segoe UI Variable Display, Bahnschrift, Segoe UI, sans-serif");
@@ -67,7 +66,6 @@ public sealed partial class KineticLayoutDirector
     }
 
 
-    // Editorial layout builder: serif/sans typography, quotes, and keyword icons
     private KineticPhraseVisual BuildEditorialPhrase(
         LyricLine line,
         int lineIndex,
@@ -175,8 +173,6 @@ public sealed partial class KineticLayoutDirector
 
         return visual;
     }
-
-    // Poster layout builder: 3-color graphic brutalist layouts with 90° whip-turns
 
     private KineticPhraseVisual BuildEditorialCalm(
         LyricLine line, int lineIndex,

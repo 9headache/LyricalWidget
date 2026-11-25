@@ -5,6 +5,23 @@ using System.Text.Json.Serialization;
 
 namespace LyricalWidget.Common;
 
+/// <summary>How media playing in a web browser (YouTube etc.) is treated.</summary>
+public enum BrowserMediaBehavior
+{
+    YouTubeLyricsWithClockFallback = 0,
+    ShowClock = 1,
+    AlwaysShowPlayer = 2
+}
+
+/// <summary>Screen rectangle of the Vibe window when it is neither maximized nor fullscreen.</summary>
+public class VibeWindowBounds
+{
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+
 public class AppSettings
 {
     public double Left { get; set; } = 100;
@@ -22,8 +39,14 @@ public class AppSettings
     public string VisibleLinesMode { get; set; } = "Auto"; // "Auto", "2", "3", "5"
     public string AnimationStyle { get; set; } = "Fluid Wave";
 
+    public const string MoonlightBloomStyle = "Moonlight Bloom";
+
+    [JsonIgnore]
+    public bool IsMoonlightBloom => AnimationStyle == MoonlightBloomStyle;
+
     public static string NormalizeAnimationStyle(string? style)
     {
+        if (string.Equals(style, MoonlightBloomStyle, StringComparison.OrdinalIgnoreCase)) return MoonlightBloomStyle;
         return "Fluid Wave";
     }
 
@@ -32,10 +55,20 @@ public class AppSettings
     public double FontSize { get; set; } = 22.0;
     public int SyncOffsetMs { get; set; } = 150; // Default +150ms SMTC latency compensation
     public bool AutoHideWhenPaused { get; set; } = false;
+    public BrowserMediaBehavior BrowserMediaBehavior { get; set; } = BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
+    // Desktop widget album cover, in pixels
+    public const double DefaultAlbumArtSize = 150.0;
+    public const double MinAlbumArtSize = 36.0;
+    public const double MaxAlbumArtSize = 180.0;
+    public double WidgetAlbumArtSize { get; set; } = DefaultAlbumArtSize;
+
+    public static double ClampAlbumArtSize(double size) =>
+        double.IsFinite(size) ? Math.Clamp(size, MinAlbumArtSize, MaxAlbumArtSize) : DefaultAlbumArtSize;
+
     public bool ShowTrackSwitchBanner { get; set; } = true;
 
     // Performance & Gaming Mode
-    public bool GamingMode { get; set; } = true; // Default ON: Software rasterization, no GPU contention/stalls
+    public bool GamingMode { get; set; } = true; // Software rendering, so the overlay never competes with a game for the GPU
     public int FpsCap { get; set; } = 60; // 60 or 30 (Eco Cap)
 
     // Startup & Onboarding
@@ -51,12 +84,18 @@ public class AppSettings
     // Fullscreen Vibe & Kinetic Typography
     public string FullscreenLayoutMode { get; set; } = "Split"; // "Split", "Kinetic"
     public string FullscreenKineticVibe { get; set; } = "Auto"; // "Auto", "Calm", "Rap", "Pop"
-    private string _fullscreenKineticPreset = "Editorial";
+    private string _fullscreenKineticPreset = "MoonlightBloom";
     public string FullscreenKineticPreset
     {
         get => _fullscreenKineticPreset;
         set => _fullscreenKineticPreset = NormalizeKineticPreset(value);
-    } // "Editorial", "Poster", "SpotlightFog", "LiveCode"
+    } // "MoonlightBloom" (default), "LiveCode", "Editorial", "Poster", "SpotlightFog"
+    public bool ShowKineticPacingPill { get; set; } = true; // "Dynamic Word Pacing" notice when entering Kinetic
+    public bool MoonlightFisheyeEnabled { get; set; } = false; // Wide-angle lens over the Moonlight Bloom stage
+    public VibeWindowBounds? VibeWindowBounds { get; set; }
+    public string VibeWindowState { get; set; } = "Normal"; // "Normal", "Maximized"
+    public bool VibeIsFullscreen { get; set; } = false;
+    public string? PreferredVibeMonitor { get; set; } // Display device name; null = wherever it was left
     public string SpotlightBackdropMode { get; set; } = "HdArtwork"; // "HdArtwork", "FluidColor"
     public bool FullscreenKineticIcons { get; set; } = true; // default ON
     public bool PosterDimMode { get; set; } = true; // Night-safe muted album palette cap (default ON)
@@ -66,7 +105,8 @@ public class AppSettings
         if (string.Equals(val, "Poster", StringComparison.OrdinalIgnoreCase)) return "Poster";
         if (string.Equals(val, "SpotlightFog", StringComparison.OrdinalIgnoreCase)) return "SpotlightFog";
         if (string.Equals(val, "LiveCode", StringComparison.OrdinalIgnoreCase)) return "LiveCode";
-        return "Editorial";
+        if (string.Equals(val, "Editorial", StringComparison.OrdinalIgnoreCase)) return "Editorial";
+        return "MoonlightBloom";
     }
 
     // Backwards-compatible deserialization for older settings.json
@@ -130,7 +170,9 @@ public static class SettingsService
                     if (string.IsNullOrWhiteSpace(settings.DisplayMode)) settings.DisplayMode = "AlbumAndLyrics";
                     if (string.IsNullOrWhiteSpace(settings.BackgroundStyle)) settings.BackgroundStyle = "Glass";
                     if (string.IsNullOrWhiteSpace(settings.LyricAlignment)) settings.LyricAlignment = "Center";
-                    settings.AnimationStyle = "Fluid Wave";
+                    settings.AnimationStyle = AppSettings.NormalizeAnimationStyle(settings.AnimationStyle);
+                    settings.WidgetAlbumArtSize = AppSettings.ClampAlbumArtSize(settings.WidgetAlbumArtSize);
+                    if (!Enum.IsDefined(settings.BrowserMediaBehavior)) settings.BrowserMediaBehavior = BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
                     if (settings.FpsCap != 30 && settings.FpsCap != 60) settings.FpsCap = 60;
                     if (settings.FullscreenLayoutMode != "Kinetic") settings.FullscreenLayoutMode = "Split";
                     if (string.IsNullOrWhiteSpace(settings.FullscreenKineticVibe)) settings.FullscreenKineticVibe = "Auto";

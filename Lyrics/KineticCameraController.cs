@@ -92,7 +92,6 @@ public sealed class KineticCameraController
 
     public void SetZoomCreep(double progressRatio)
     {
-        // Continuous subtle creep (1.00 -> 1.04) over line duration so camera is never static
         double creep = 1.00 + (Math.Clamp(progressRatio, 0.0, 1.0) * 0.04);
         TargetCamZoom = BaseZoom * creep;
     }
@@ -106,7 +105,6 @@ public sealed class KineticCameraController
         if (vibeSetting == "Calm") speed *= 0.75;
         else if (vibeSetting == "Rap") speed *= 1.25;
 
-        // Subtle beat pulse micro-push (>0.50 impulse)
         if (beatImpulse > 0.50)
         {
             double push = (beatImpulse - 0.50) * 0.025;
@@ -129,7 +127,6 @@ public sealed class KineticCameraController
         double angleFactor = 1.0 - Math.Exp(-(speed * 0.90) * dt);
         CamAngle += (TargetCamAngle - CamAngle) * angleFactor;
 
-        // Bounded Camera Math Guard
         if (!double.IsFinite(CamX) || !double.IsFinite(TargetCamX)) CamX = TargetCamX = 0.0;
         if (!double.IsFinite(CamY) || !double.IsFinite(TargetCamY)) CamY = TargetCamY = 0.0;
         if (!double.IsFinite(CamZoom) || CamZoom < 0.3 || CamZoom > 3.0) CamZoom = TargetCamZoom = Math.Clamp(CamZoom, 0.55, 1.45);
@@ -144,7 +141,7 @@ public sealed class KineticCameraController
         if (!double.IsFinite(vpW) || vpW <= 100) vpW = 1920;
         if (!double.IsFinite(vpH) || vpH <= 100) vpH = 1080;
 
-        // Subtle ambient drift (so screen is NEVER frozen dead still)
+        // Ambient drift, so the shot never freezes
         double ambientZoom = 1.0 + (Math.Sin(timeElapsedSec * 0.35) * 0.008);
         double ambientPanX = Math.Cos(timeElapsedSec * 0.25) * 3.5;
         double ambientPanY = Math.Sin(timeElapsedSec * 0.30) * 2.5;
@@ -153,7 +150,7 @@ public sealed class KineticCameraController
         double finalCamY = CamY + ambientPanY;
         double finalZoom = CamZoom * (1.0 + BeatPulseZoom + ZoomPunch) * ambientZoom;
 
-        // Safe area framing: centered cleanly above/right of bottom-left album badge
+        // Kept clear of the album badge at bottom left
         double safeCenterX = vpW * 0.52;
         double safeCenterY = vpH * 0.46;
 

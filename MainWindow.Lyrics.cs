@@ -26,6 +26,7 @@ namespace LyricalWidget;
 public partial class MainWindow : Window
 {
     private long _lastFrameTimestamp = 0;
+    private long _nextFrameDueTimestamp = 0;
     private int _currentActiveIndex = -1;
     private double _activeLineChangedTime = 0;
     private int _lastDisplayedCurSec = -1;
@@ -44,6 +45,9 @@ public partial class MainWindow : Window
 
     private readonly List<LyricLineVisualItem> _lyricsOnlyVisuals = new();
     private readonly List<LyricLineVisualItem> _sideLyricsVisuals = new();
+
+    private readonly MoonlightBloomRenderer _lyricsOnlyMoonlight;
+    private readonly MoonlightBloomRenderer _sideMoonlight;
 
     private InterludeSlotItem? _lyricsOnlyInterludeSlot;
     private InterludeSlotItem? _sideLyricsInterludeSlot;
@@ -74,6 +78,46 @@ public partial class MainWindow : Window
     }
 
 
+    // Browser / YouTube media
+    private bool _clockForBrowser = false;
+    private bool _browserLyricsPending = false;
+
+    public void SetBrowserMediaBehavior(BrowserMediaBehavior behavior)
+    {
+        _settings.BrowserMediaBehavior = behavior;
+        _mediaService.BrowserBehavior = behavior;
+        _trayService?.UpdateBrowserMediaState(behavior);
+        UpdateToolbarButtons();
+
+        if (!_browserLyricsPending) ResolveBrowserClock(_mediaService.CurrentTrack);
+        if (behavior != BrowserMediaBehavior.YouTubeLyricsWithClockFallback) _clockForBrowser = false;
+
+        _mediaService.ReevaluateSessions();
+        if (!IsFullscreenActive) UpdateAutoHideState(_mediaService.IsPlaying);
+        SaveCurrentBounds();
+    }
+
+    private bool UsesBrowserClockFallback(TrackInfo track)
+    {
+        return track.IsBrowserSource && _settings.BrowserMediaBehavior == BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
+    }
+
+    /// <summary>Called before a track's lyrics are known: stay on the clock unless lyrics are already on screen.</summary>
+    private void BeginBrowserLookup(TrackInfo track)
+    {
+        bool wasShowingLyrics = _currentLyrics.HasSyncedLyrics || (_browserLyricsPending && !_clockForBrowser);
+        bool usesFallback = UsesBrowserClockFallback(track);
+        _browserLyricsPending = usesFallback;
+        _clockForBrowser = usesFallback && !wasShowingLyrics;
+    }
+
+    /// <summary>Called once the lookup has finished.</summary>
+    private void ResolveBrowserClock(TrackInfo track)
+    {
+        _browserLyricsPending = false;
+        _clockForBrowser = UsesBrowserClockFallback(track) && !_currentLyrics.HasSyncedLyrics;
+    }
+
     private void NudgeSongOffset(int deltaMs)
     {
         _currentLyrics.UserOffsetMs += deltaMs;
@@ -88,6 +132,12 @@ public partial class MainWindow : Window
 
     private void RebuildLyricsViews()
     {
+        _lyricsOnlyMoonlight.UpdateLyrics(_currentLyrics);
+        _sideMoonlight.UpdateLyrics(_currentLyrics);
+        // The glyphs are far wider than the default face, so the size slider maps to a larger cap here
+        _lyricsOnlyMoonlight.MaxFontSize = _settings.FontSize * 1.7;
+        _sideMoonlight.MaxFontSize = _settings.FontSize * 1.5;
+
         LyricsOnlyCanvas.Children.Clear();
         SideLyricsCanvas.Children.Clear();
         _lyricsOnlyVisuals.Clear();
@@ -488,7 +538,7 @@ public partial class MainWindow : Window
         try
         {
             if (Visibility != Visibility.Visible || _isManuallyHidden) return;
-            if (_isAutoHidden && !_settings.ShowIdleClock) return;
+            if (_isAutoHidden && !ShowsIdleClockWhenHidden) return;
 
         long nowTicks = Stopwatch.GetTimestamp();
         int targetFps = _settings.FpsCap > 0 ? _settings.FpsCap : 60;
@@ -498,18 +548,21 @@ public partial class MainWindow : Window
             ? (double)(nowTicks - _lastFrameTimestamp) / Stopwatch.Frequency
             : targetInterval;
 
-        // Strict FPS capping: drop excess frame events from CompositionTarget on 144Hz-360Hz displays
-        // (Allow 1.5ms slack so we don't accidentally miss a target 60Hz or 30Hz frame due to tick jitter)
-        if (_lastFrameTimestamp > 0 && elapsedSinceLastRender < (targetInterval - 0.0015))
+        // Pace frames against a running deadline rather than the previous frame: a late frame then shortens the
+        // next wait instead of pushing every later frame back, so the average really is the cap.
+        // (1.5ms slack so tick jitter does not skip a frame that is all but due)
+        long slackTicks = (long)(0.0015 * Stopwatch.Frequency);
+        if (nowTicks < _nextFrameDueTimestamp - slackTicks)
         {
             return;
         }
+        _nextFrameDueTimestamp = Math.Max(nowTicks, _nextFrameDueTimestamp + (long)(targetInterval * Stopwatch.Frequency));
 
         _lastFrameTimestamp = nowTicks;
         double dt = elapsedSinceLastRender;
         if (dt <= 0.0) dt = targetInterval;
 
-        if (_isAutoHidden && _settings.ShowIdleClock)
+        if (_isAutoHidden && ShowsIdleClockWhenHidden)
         {
             UpdateClockTime(dt);
             return;
@@ -573,6 +626,28 @@ public partial class MainWindow : Window
         {
             // If paused and no synced lyrics, pause rendering loop
             if (!_mediaService.IsPlaying)
+            {
+                StopRenderingLoop();
+            }
+            return;
+        }
+
+        if (_settings.IsMoonlightBloom)
+        {
+            bool settled = true;
+            // Game Mode renders in software, where the liquid layers are not worth their cost
+            _lyricsOnlyMoonlight.LiteEffects = _settings.GamingMode;
+            _sideMoonlight.LiteEffects = _settings.GamingMode;
+            if (LyricsOnlyView.Visibility == Visibility.Visible)
+            {
+                settled = _lyricsOnlyMoonlight.UpdateFrame(dt, effectivePos, _mediaService.IsPlaying, _audioBeatService.BeatImpulse, _audioBeatService.SnareImpulse);
+            }
+            else if (SideBySideView.Visibility == Visibility.Visible)
+            {
+                settled = _sideMoonlight.UpdateFrame(dt, effectivePos, _mediaService.IsPlaying, _audioBeatService.BeatImpulse, _audioBeatService.SnareImpulse);
+            }
+
+            if (!_mediaService.IsPlaying && settled)
             {
                 StopRenderingLoop();
             }

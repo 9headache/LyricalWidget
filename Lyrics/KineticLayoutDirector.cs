@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using LyricalWidget.Media;
 
 namespace LyricalWidget.Lyrics;
@@ -39,19 +36,6 @@ public sealed partial class KineticLayoutDirector
         _lastIconLineIndex = -99;
         _posterPhraseCounter = 0;
         _lastPosterLayout = -1;
-    }
-
-    public KineticPhraseVisual CreatePhrase(
-        LyricLine line,
-        int lineIndex,
-        IReadOnlyList<LyricLine> allLines,
-        VibePalette palette,
-        string vibeSetting,
-        double bassEnergy,
-        double beatImpulse,
-        Size viewportSize)
-    {
-        return CreatePhrase(line, lineIndex, allLines, palette, vibeSetting, "Editorial", bassEnergy, beatImpulse, viewportSize);
     }
 
     public KineticPhraseVisual CreatePhrase(

@@ -18,7 +18,7 @@
 
 ## Live Demos
 
-### v2.1.0 Fullscreen Update (`LiveCode` & `SpotlightFog`)
+### Fullscreen Kinetic (`LiveCode` & `SpotlightFog`)
 
 https://github.com/user-attachments/assets/a8525f2e-b613-4b09-bdd5-730abd115832
 
@@ -54,21 +54,22 @@ https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d
 
 ## Features
 
-* **Real-Time SMTC Sync** — Hooks directly into Windows Media Controls for millisecond-interpolated sync with Spotify and desktop players.
-* **Gaming-Friendly Overlay** — Click-through locking, dedicated Gaming Mode, and **Transparent** or **Glassify** frosted card styles with dynamic album art colors.
-* **Fullscreen Vibe Mode (`v2.1.0`)** — Includes **Split Mode**, **Live Code** (syntax-highlighted lyrics with colored blocks and artist cursor), **Spotlight Fog** (spring-driven vertical word scroll over frosted fog), plus **Editorial** and **Poster** presets with live preset switching.
-* **1200×1200 HD Album Artwork** — Fetches high-resolution covers automatically with a fluid color backdrop fallback and anti-grey accent lift on dark art.
-* **Minimal Idle Clock** — Automatically transitions to a floating or glass clock when music pauses.
-* **Fast Offline Caching** — Races LRCLIB and NetEase in parallel and caches synced lyrics locally for 30 days.
-* **Built-In Auto-Updater** — Checks GitHub Releases automatically and updates in place without touching your saved settings.
+* **SMTC sync:** reads playback straight from Windows Media Controls and interpolates to the millisecond. Works with Spotify and other desktop players.
+* **Browser media:** pick the idle clock, synced lyrics, or the full player for YouTube and other browser playback.
+* **Gaming overlay:** click-through lock, Gaming Mode, and **Transparent** or **Glassify** styles tinted by the album art.
+* **Fullscreen Vibe Mode (`v2.5.0`):** **Split Mode** plus the **Moonlight Bloom**, **Live Code**, **Spotlight Fog**, **Editorial** and **Poster** styles, switchable while the song plays.
+* **1200×1200 album art:** fetched automatically, with a color backdrop when there is no high-resolution cover.
+* **Idle clock:** takes over when the music pauses.
+* **Lyric cache:** asks LRCLIB and NetEase in parallel and keeps synced lyrics on disk for 30 days.
+* **Auto-updater:** checks GitHub Releases and updates in place without touching your settings.
 
 ---
 
 ## Quick Start
 
-1. Download **`LyricalWidget.exe`** from the [**Latest Release**](https://github.com/9headache/LyricalWidget/releases/latest) page (standalone—no .NET install required).
+1. Download **`LyricalWidget.exe`** from the [**Latest Release**](https://github.com/9headache/LyricalWidget/releases/latest) page. It is standalone, so you do not need to install .NET.
 2. Double-click to launch.
-   > *Windows SmartScreen may show a prompt on first launch since the binary is not code-signed—click **More info → Run anyway**.*
+   > *The binary is not code-signed, so Windows SmartScreen may warn on first launch. Click **More info → Run anyway**.*
 3. Play a song on Spotify and right-click the system tray icon to switch themes, lock position, or open Fullscreen Mode.
 
 ---
@@ -77,6 +78,9 @@ https://github.com/user-attachments/assets/63cfff21-4ce7-4c4f-bc40-f8ed4ea03e6d
 <summary><b>Building From Source (.NET 10 SDK)</b></summary>
 
 ```powershell
-git clone [https://github.com/9headache/LyricalWidget.git](https://github.com/9headache/LyricalWidget.git)
+git clone https://github.com/9headache/LyricalWidget.git
 cd LyricalWidget
 dotnet run
+```
+
+</details>

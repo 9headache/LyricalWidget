@@ -37,12 +37,10 @@ public class LyricWordVisualItem
 public class LyricLineVisualItem
 {
     public FrameworkElement Container { get; set; } = null!;
-    public TextBlock? LineTextBlock { get; set; }
     public TextBlock? SubTextBlock { get; set; }
     public TranslateTransform TranslateTransform { get; set; } = null!;
     public ScaleTransform ScaleTransform { get; set; } = null!;
     public DropShadowEffect? LineGlowEffect { get; set; }
-    public BlurEffect? InactiveBlurEffect { get; set; }
     public Border? IndicatorBar { get; set; }
     public DropShadowEffect? IndicatorGlow { get; set; }
     public double CurrentTranslateX { get; set; }

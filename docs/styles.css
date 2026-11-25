@@ -14,6 +14,12 @@
   --max-w: 1180px;
 
   --dial-angle: 0deg;
+
+  /* Showcase: the video takes what is left after the dial markers above it and the pills and caption below it.
+     The dial is sized from the video so the neighbouring markers land just outside its sides. */
+  --stage-h: max(220px, min(66vh, 100vh - 372px));
+  --stage-w: min(80vw, 1560px, calc(var(--stage-h) * 16 / 9));
+  --dial-w: calc(var(--stage-w) * 2.1 + 60px);
   --stage-scale: 1;
 }
 
@@ -219,7 +225,7 @@ button {
   height: 680px;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 42% 42%, rgba(185, 202, 230, 0.12), transparent 62%),
+    radial-gradient(circle at 42% 42%, rgba(228, 228, 231, 0.10), transparent 62%),
     radial-gradient(circle at 64% 62%, rgba(255, 255, 255, 0.05), transparent 60%);
   filter: blur(80px);
   pointer-events: none;
@@ -343,6 +349,222 @@ button {
   align-items: center;
   justify-content: center;
   perspective: 900px;
+}
+
+/* Opening animation. The wrapper carries all intro motion so nothing inside it is ever touched. */
+.hero-intro-wrap {
+  position: relative;
+}
+
+.intro-bloom,
+.intro-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(280px, 32vw, 360px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-bloom {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.34) 0%, rgba(212, 212, 216, 0.16) 44%, transparent 70%);
+}
+
+.intro-ring {
+  border: 1px solid rgba(244, 244, 245, 0.75);
+  box-shadow: 0 0 34px rgba(228, 228, 231, 0.45), inset 0 0 26px rgba(228, 228, 231, 0.28);
+}
+
+/* Waiting for power-up */
+.intro-pending {
+  overflow: hidden;
+  scrollbar-gutter: stable; /* so unlocking the scrollbar shifts nothing */
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #07080B;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-pending body::before {
+  opacity: 1;
+}
+
+.intro-pending .topbar-wrap,
+.intro-pending .hero-studio-glow,
+.intro-pending .hero-copy,
+.intro-pending main > section:not(.hero-chapter),
+.intro-pending .site-footer {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.intro-pending .hero-intro-wrap {
+  opacity: 0;
+}
+
+.intro-ready .hero-intro-wrap {
+  opacity: 1;
+  transition: opacity 0.9s ease, transform 0.45s var(--ease-apple);
+}
+
+/* Powered up and on the move: stays lit while the rest of the page is still dark */
+.intro-running .hero-intro-wrap {
+  opacity: 1;
+}
+
+/* The page lights up through a circle that opens from the logo. app.js drives --light-r. */
+.intro-dark,
+.intro-wave {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.intro-dark {
+  z-index: 130;
+  background: #07080B;
+  -webkit-mask-image: radial-gradient(circle at var(--light-x) var(--light-y), transparent calc(var(--light-r) - 140px), #000 var(--light-r));
+  mask-image: radial-gradient(circle at var(--light-x) var(--light-y), transparent calc(var(--light-r) - 140px), #000 var(--light-r));
+}
+
+.intro-wave {
+  z-index: 131;
+  background: radial-gradient(circle at var(--light-x) var(--light-y),
+    transparent calc(var(--light-r) - 220px),
+    rgba(212, 212, 216, 0.07) calc(var(--light-r) - 120px),
+    rgba(255, 255, 255, 0.26) calc(var(--light-r) - 62px),
+    rgba(228, 228, 231, 0.10) calc(var(--light-r) - 36px),
+    transparent calc(var(--light-r) + 10px));
+}
+
+.intro-ready #hero-sculpture {
+  cursor: pointer;
+}
+
+.intro-ready .intro-bloom {
+  animation: intro-breathe 4.4s ease-in-out infinite;
+}
+
+@keyframes intro-breathe {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1.34);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1.62);
+  }
+}
+
+.intro-ready .intro-ring {
+  transition: opacity 0.4s ease;
+}
+
+.intro-ready.intro-hover .intro-ring {
+  opacity: 0.8;
+}
+
+.intro-ready.intro-hover .intro-bloom {
+  animation-duration: 2.2s;
+  filter: brightness(1.5);
+}
+
+.power-pill {
+  position: fixed;
+  left: 50%;
+  z-index: 95;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 24px 0 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(14, 16, 22, 0.9), rgba(14, 16, 22, 0.9)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(161, 161, 170, 0.22) 45%, rgba(255, 255, 255, 0.08)) border-box,
+    #07080B;
+  background-clip: padding-box, border-box, padding-box;
+  box-shadow: 0 0 34px rgba(228, 228, 231, 0.16), 0 14px 34px -10px rgba(0, 0, 0, 0.8);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: transform 0.45s var(--ease-apple), box-shadow 0.45s ease;
+  animation: power-pill-in 0.9s var(--ease-apple) 0.35s backwards;
+}
+
+.power-pill-label {
+  margin-right: -0.3em; /* trailing tracking would push the text off centre */
+  background: linear-gradient(100deg, #FFFFFF 0%, #A1A1AA 46%, #F4F4F5 78%, #A1A1AA 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.power-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF, #A1A1AA);
+  animation: power-dot 2.2s ease-in-out infinite;
+}
+
+.power-pill:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 4px;
+}
+
+.intro-hover .power-pill {
+  transform: translateX(-50%) scale(1.04);
+  box-shadow: 0 0 52px rgba(244, 244, 245, 0.34), 0 14px 34px -10px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes power-pill-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+}
+
+@keyframes power-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
+    opacity: 0.6;
+  }
+
+  50% {
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
+    opacity: 1;
+  }
+}
+
+/* Only exists while the title blooms in; app.js restores the plain title afterwards */
+.hero-word {
+  display: inline-block;
+}
+
+.hero-title-chrome .hero-word {
+  padding-right: 0.08em;
+  margin-right: -0.08em;
+  background-image: linear-gradient(180deg, #FFFFFF 12%, #D1D5DB 58%, #838894 100%);
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .hardware-sculpture {
@@ -498,7 +720,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 76px 0 32px;
+  padding: 76px 0 30px;
 }
 
 .showcase-ambient {
@@ -516,26 +738,54 @@ button {
 }
 
 body[data-channel="0"] .showcase-ambient {
-  background: radial-gradient(ellipse at center, rgba(224, 152, 68, 0.16), rgba(92, 134, 190, 0.12) 55%, transparent 74%);
+  background: radial-gradient(ellipse at center, rgba(244, 244, 245, 0.13), rgba(161, 161, 170, 0.08) 55%, transparent 74%);
 }
 
 body[data-channel="1"] .showcase-ambient {
-  background: radial-gradient(ellipse at center, rgba(132, 140, 248, 0.18), rgba(79, 70, 229, 0.12) 55%, transparent 74%);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.15), rgba(212, 212, 216, 0.07) 55%, transparent 74%);
 }
 
 body[data-channel="2"] .showcase-ambient {
-  background: radial-gradient(ellipse at center, rgba(218, 70, 86, 0.17), rgba(214, 165, 76, 0.12) 55%, transparent 74%);
+  background: radial-gradient(ellipse at center, rgba(212, 212, 216, 0.14), rgba(113, 113, 122, 0.10) 55%, transparent 74%);
+}
+
+/* Chapter markers across the track: boundaries sit where the pinned stage is 1/3 and 2/3 of the way through */
+.showcase-step {
+  display: none;
+  position: absolute;
+  left: 0;
+  width: 1px;
+  pointer-events: none;
+}
+
+.showcase-step[data-step="0"] {
+  top: 0;
+  height: 39.3%;
+}
+
+.showcase-step[data-step="1"] {
+  top: 39.3%;
+  height: 21.4%;
+}
+
+.showcase-step[data-step="2"] {
+  top: 60.7%;
+  height: 39.3%;
 }
 
 .giant-dial-wrap {
   position: absolute;
-  top: 72px;
+  top: calc(92px - var(--dial-w) * 0.0208);
   left: 50%;
-  width: min(125vw, 1500px);
+  width: var(--dial-w);
   aspect-ratio: 1 / 1;
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 1;
+}
+
+.dial-labels {
+  font-size: 10px;
 }
 
 .giant-dial-svg {
@@ -570,7 +820,6 @@ body[data-channel="2"] .showcase-ambient {
   position: relative;
   z-index: 3;
   width: 100%;
-  max-width: 1280px;
   margin: 0 auto;
   padding: 0 28px;
   display: flex;
@@ -630,8 +879,7 @@ body[data-channel="2"] .showcase-ambient {
 
 .cinema-video-shell {
   position: relative;
-  width: min(88vw, 1220px);
-  max-height: 62vh;
+  width: var(--stage-w);
   aspect-ratio: 16 / 9;
   border-radius: 18px;
   overflow: hidden;
@@ -721,7 +969,7 @@ body[data-channel="2"] .showcase-ambient {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  width: min(90vw, 1280px);
+  width: min(90vw, max(var(--stage-w), 1140px));
   flex-wrap: wrap;
 }
 
@@ -1175,11 +1423,13 @@ body[data-channel="2"] .showcase-ambient {
     text-align: left;
   }
 
-  .hero-sculpture-col {
+  .hero-intro-wrap {
     order: -1;
   }
 
-  .hardware-sculpture {
+  .hardware-sculpture,
+  .intro-bloom,
+  .intro-ring {
     width: clamp(210px, 54vw, 270px);
   }
 
@@ -1198,37 +1448,39 @@ body[data-channel="2"] .showcase-ambient {
     color: #FFFFFF;
   }
 
-  /* Release sticky 360vh scroll lock cleanly on mobile */
+  /* Native sticky stage with a shorter track. Chapters follow the .showcase-step markers, not scroll math. */
   .showcase-track {
-    height: auto;
-    padding: 72px 0;
+    height: 280vh;
+    height: 280svh;
   }
 
   .showcase-sticky {
-    position: relative;
-    height: auto;
-    padding: 0;
+    height: 100vh;
+    height: 100svh;
+    justify-content: center;
+    padding: 84px 0 24px;
+  }
+
+  .showcase-step {
+    display: block;
   }
 
   .giant-dial-wrap {
-    top: -12px;
+    top: 72px;
     width: 140vw;
   }
 
-  .giant-dial-svg {
-    transition: transform 0.68s var(--ease-apple);
-  }
-
-  .dial-fixed-pointer {
-    top: -18px;
+  .dial-labels {
+    font-size: 18px;
   }
 
   .showcase-stage-inner {
-    padding: 36px 20px 0;
+    padding: 0 20px;
   }
 
   .cinema-video-shell {
-    width: 100%;
+    width: min(100%, calc(52vh * 16 / 9));
+    width: min(100%, calc(52svh * 16 / 9));
     max-height: none;
     transform: none;
     border-radius: 14px;
@@ -1328,5 +1580,29 @@ body[data-channel="2"] .showcase-ambient {
   .footer-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* Phones held sideways: keep the whole stage inside the short screen */
+@media (max-width: 900px) and (max-height: 520px) {
+  .showcase-sticky {
+    padding: 70px 0 10px;
+  }
+
+  .showcase-stage-inner {
+    gap: 8px;
+  }
+
+  .cinema-video-shell {
+    width: min(100%, calc(44vh * 16 / 9));
+    width: min(100%, calc(44svh * 16 / 9));
+  }
+
+  .showcase-caption {
+    font-size: 0.8rem;
+  }
+
+  .showcase-hotkey-tag {
+    display: none;
   }
 }
