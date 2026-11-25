@@ -1079,6 +1079,7 @@ body[data-channel="2"] .showcase-ambient {
   position: relative;
   display: block;
   width: 100%;
+  min-height: 180px;
   aspect-ratio: 3 / 2;
   border-radius: 22px;
   background: #0E1016;
@@ -1100,9 +1101,7 @@ body[data-channel="2"] .showcase-ambient {
   inset: 0;
   margin: auto;
   width: auto;
-  height: auto;
-  max-width: calc(100% - 40px);
-  max-height: calc(100% - 40px);
+  height: calc(100% - 40px); /* Width follows from the img size attributes, so it never collapses before loading */
   border-radius: 12px;
   opacity: 0;
   transform: scale(0.965);
@@ -1735,13 +1734,11 @@ html:has(.theme-lightbox[open]) {
   }
 
   .theme-open {
-    aspect-ratio: 4 / 3;
     border-radius: 16px;
   }
 
   .theme-shot {
-    max-width: calc(100% - 16px);
-    max-height: calc(100% - 16px);
+    height: calc(100% - 16px);
     border-radius: 10px;
   }
 

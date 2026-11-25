@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.5.0-2">
   <script>
     // Show only the power-up screen from the first paint. Deep links and reduced motion go straight to the page,
     // and if app.js never takes over the page unlocks by itself.
@@ -253,13 +253,13 @@
           </div>
         </div>
 
-        <div class="theme-stage reveal">
+        <div class="theme-stage">
           <button type="button" class="theme-open" id="theme-open" aria-haspopup="dialog" aria-label="View Midnight Bloom lyrics full size">
-            <img class="theme-shot is-active" src="assets/theme-lyrics-midnight-bloom.png" width="951" height="715" alt="The Midnight Bloom widget: glowing lyrics on a black card beside the album art" loading="lazy" decoding="async">
-            <img class="theme-shot" src="assets/theme-lyrics-glass.png" width="974" height="786" alt="The Glass widget: lyrics on a dark frosted card beside the album art" aria-hidden="true" loading="lazy" decoding="async">
-            <img class="theme-shot" src="assets/theme-lyrics-transparent.png" width="881" height="674" alt="The Transparent widget: lyrics and album art directly on the wallpaper" aria-hidden="true" loading="lazy" decoding="async">
-            <img class="theme-shot" src="assets/theme-clock-glass.png" width="878" height="688" alt="The idle clock on a dark frosted card" aria-hidden="true" loading="lazy" decoding="async">
-            <img class="theme-shot" src="assets/theme-clock-transparent.png" width="965" height="686" alt="The idle clock directly on the wallpaper" aria-hidden="true" loading="lazy" decoding="async">
+            <img class="theme-shot is-active" src="assets/theme-lyrics-midnight-bloom.png" width="951" height="715" alt="The Midnight Bloom widget: glowing lyrics on a black card beside the album art" loading="eager" fetchpriority="high">
+            <img class="theme-shot" src="assets/theme-lyrics-glass.png" width="974" height="786" alt="The Glass widget: lyrics on a dark frosted card beside the album art" aria-hidden="true" loading="eager">
+            <img class="theme-shot" src="assets/theme-lyrics-transparent.png" width="881" height="674" alt="The Transparent widget: lyrics and album art directly on the wallpaper" aria-hidden="true" loading="eager">
+            <img class="theme-shot" src="assets/theme-clock-glass.png" width="878" height="688" alt="The idle clock on a dark frosted card" aria-hidden="true" loading="eager">
+            <img class="theme-shot" src="assets/theme-clock-transparent.png" width="965" height="686" alt="The idle clock directly on the wallpaper" aria-hidden="true" loading="eager">
           </button>
         </div>
 
@@ -462,6 +462,6 @@
     <button type="button" class="theme-lightbox-close" aria-label="Close preview">&times;</button>
   </dialog>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.5.0-2"></script>
 </body>
 </html>
