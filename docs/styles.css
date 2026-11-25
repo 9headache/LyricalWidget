@@ -1059,6 +1059,36 @@ body[data-channel="2"] .showcase-ambient {
   line-height: 1.68;
 }
 
+.legal-col p + p {
+  margin-top: 12px;
+}
+
+.license-list {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.license-list strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.license-list a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.32);
+}
+
+.license-list a:hover {
+  text-decoration-color: #ffffff;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);
