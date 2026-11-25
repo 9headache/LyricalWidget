@@ -383,17 +383,17 @@
     {
       angle: 0,
       hotkey: 'Alt + L · Click-Through',
-      caption: '<strong>In-Game Overlay:</strong> Forza Horizon with Gaming Mode on and the overlay click-through (<code>Alt + L</code>).'
+      caption: '<strong>In-Game Overlay:</strong> Forza Horizon with lyrics on top. Lock the overlay with <code>Alt + L</code> and clicks go to the game.'
     },
     {
       angle: -36,
-      hotkey: 'Alt + T · Glassify HUD',
-      caption: '<strong>Desktop Widget:</strong> Transparent lyrics, frosted Glassify cards and the idle clock.'
+      hotkey: 'Album Art · 36–180px',
+      caption: '<strong>Desktop Widget:</strong> Quick-access bars, Midnight Bloom widget mode and album art you can size from 36px to 180px.'
     },
     {
       angle: -72,
       hotkey: 'Alt + F · 60 FPS Kinetic',
-      caption: '<strong>Fullscreen 60 FPS:</strong> Live Code, Spotlight Fog and 1200x1200 album artwork.'
+      caption: '<strong>Fullscreen Vibe:</strong> Moonlight Bloom, Fisheye, a window that snaps, and Ambient Idle when you pause.'
     }
   ];
 
@@ -674,6 +674,49 @@
   onScrollFrame();
   syncMuteUI();
   syncVideoPlayback();
+
+  const THEMES = [
+    { name: 'Midnight Bloom lyrics', caption: '<strong>Midnight Bloom:</strong> glowing words on a black card, revealed in time with the vocals.' },
+    { name: 'Glass lyrics', caption: '<strong>Glass:</strong> a dark frosted card that keeps lyrics readable over anything.' },
+    { name: 'Transparent lyrics', caption: '<strong>Transparent:</strong> no card, just lyrics and album art over your desktop or game.' },
+    { name: 'Glass clock', caption: '<strong>Glass Clock:</strong> the idle clock on the same frosted card when the music stops.' },
+    { name: 'Transparent clock', caption: '<strong>Transparent Clock:</strong> only the time and date, straight on the wallpaper.' }
+  ];
+  const themePills = Array.from(document.querySelectorAll('.theme-pill'));
+  const themeShots = Array.from(document.querySelectorAll('.theme-shot'));
+  const themeOpen = document.getElementById('theme-open');
+  const themeCaption = document.getElementById('theme-caption');
+  const lightbox = document.getElementById('theme-lightbox');
+  const lightboxImg = document.getElementById('theme-lightbox-img');
+  let activeTheme = 0;
+
+  function setTheme(idx) {
+    if (idx === activeTheme || !THEMES[idx]) return;
+    activeTheme = idx;
+    themePills.forEach((pill, i) => pill.setAttribute('aria-pressed', i === idx ? 'true' : 'false'));
+    themeShots.forEach((shot, i) => {
+      shot.classList.toggle('is-active', i === idx);
+      if (i === idx) shot.removeAttribute('aria-hidden');
+      else shot.setAttribute('aria-hidden', 'true');
+    });
+    themeOpen.setAttribute('aria-label', `View ${THEMES[idx].name} full size`);
+    themeCaption.innerHTML = THEMES[idx].caption;
+    if (!prefersReducedMotion && themeCaption.animate) {
+      themeCaption.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+    }
+  }
+
+  themePills.forEach((pill, i) => pill.addEventListener('click', () => setTheme(i)));
+
+  if (themeOpen && lightbox && lightbox.showModal) {
+    themeOpen.addEventListener('click', () => {
+      const shot = themeShots[activeTheme];
+      lightboxImg.src = shot.src;
+      lightboxImg.alt = shot.alt;
+      lightbox.showModal(); // Esc and focus are handled by the dialog itself
+    });
+    lightbox.addEventListener('click', () => lightbox.close());
+  }
 
   const revealEls = document.querySelectorAll('.reveal');
   if (prefersReducedMotion || !('IntersectionObserver' in window)) {

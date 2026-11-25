@@ -51,6 +51,7 @@
 
       <nav class="topbar-nav" aria-label="Primary navigation">
         <a href="#showcase">Showcase</a>
+        <a href="#themes">Themes</a>
         <a href="#architecture">Architecture</a>
         <a href="#legal">Privacy &amp; Terms</a>
       </nav>
@@ -184,9 +185,9 @@
 
         <div class="showcase-stage-inner">
           <div class="cinema-video-shell" id="cinema-video-shell">
-            <video class="stage-video-layer is-active" data-video-idx="0" src="assets/ingame-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
-            <video class="stage-video-layer" data-video-idx="1" src="assets/widget-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
-            <video class="stage-video-layer" data-video-idx="2" src="assets/fullscreen-demo.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
+            <video class="stage-video-layer is-active" data-video-idx="0" src="assets/ingame-v2.5.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="1" src="assets/widget-v2.5.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
+            <video class="stage-video-layer" data-video-idx="2" src="assets/fullscreen-v2.5.mp4" muted autoplay loop playsinline webkit-playsinline preload="metadata"></video>
 
             <div class="cinema-hud">
               <button type="button" id="cinema-mute-btn" class="mute-btn" aria-label="Unmute active video">
@@ -223,11 +224,46 @@
 
           <div class="showcase-caption-row">
             <p class="showcase-caption" id="showcase-caption">
-              <strong>In-Game Overlay:</strong> Forza Horizon with Gaming Mode on and the overlay click-through (<code>Alt + L</code>).
+              <strong>In-Game Overlay:</strong> Forza Horizon with lyrics on top. Lock the overlay with <code>Alt + L</code> and clicks go to the game.
             </p>
             <span class="showcase-hotkey-tag" id="showcase-hotkey">Alt + L &middot; Click-Through</span>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="themes-section" id="themes">
+      <div class="container">
+        <div class="themes-head reveal">
+          <div class="section-eyebrow">Themes &amp; Modes</div>
+          <h2>Five looks, one widget.</h2>
+        </div>
+
+        <div class="theme-switcher" role="group" aria-label="Widget themes">
+          <div class="theme-group" role="group" aria-labelledby="theme-group-lyrics">
+            <span class="theme-group-label" id="theme-group-lyrics">Lyrics</span>
+            <button type="button" class="theme-pill" data-theme="0" aria-pressed="true">Midnight Bloom</button>
+            <button type="button" class="theme-pill" data-theme="1" aria-pressed="false">Glass</button>
+            <button type="button" class="theme-pill" data-theme="2" aria-pressed="false">Transparent</button>
+          </div>
+          <div class="theme-group" role="group" aria-labelledby="theme-group-clock">
+            <span class="theme-group-label" id="theme-group-clock">Clock</span>
+            <button type="button" class="theme-pill" data-theme="3" aria-pressed="false">Glass</button>
+            <button type="button" class="theme-pill" data-theme="4" aria-pressed="false">Transparent</button>
+          </div>
+        </div>
+
+        <div class="theme-stage reveal">
+          <button type="button" class="theme-open" id="theme-open" aria-haspopup="dialog" aria-label="View Midnight Bloom lyrics full size">
+            <img class="theme-shot is-active" src="assets/theme-lyrics-midnight-bloom.png" width="951" height="715" alt="The Midnight Bloom widget: glowing lyrics on a black card beside the album art" loading="lazy" decoding="async">
+            <img class="theme-shot" src="assets/theme-lyrics-glass.png" width="974" height="786" alt="The Glass widget: lyrics on a dark frosted card beside the album art" aria-hidden="true" loading="lazy" decoding="async">
+            <img class="theme-shot" src="assets/theme-lyrics-transparent.png" width="881" height="674" alt="The Transparent widget: lyrics and album art directly on the wallpaper" aria-hidden="true" loading="lazy" decoding="async">
+            <img class="theme-shot" src="assets/theme-clock-glass.png" width="878" height="688" alt="The idle clock on a dark frosted card" aria-hidden="true" loading="lazy" decoding="async">
+            <img class="theme-shot" src="assets/theme-clock-transparent.png" width="965" height="686" alt="The idle clock directly on the wallpaper" aria-hidden="true" loading="lazy" decoding="async">
+          </button>
+        </div>
+
+        <p class="theme-caption" id="theme-caption" aria-live="polite"><strong>Midnight Bloom:</strong> glowing words on a black card, revealed in time with the vocals.</p>
       </div>
     </section>
 
@@ -420,6 +456,11 @@
       <p class="footer-quote">&ldquo;Built free and source-available because desktop lyrics shouldn't sit behind a paywall.&rdquo;</p>
     </div>
   </footer>
+
+  <dialog class="theme-lightbox" id="theme-lightbox" aria-label="Full-size preview">
+    <img id="theme-lightbox-img" alt="">
+    <button type="button" class="theme-lightbox-close" aria-label="Close preview">&times;</button>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
