@@ -17,7 +17,9 @@
   --stage-scale: 1;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -254,6 +256,7 @@ button {
   background: linear-gradient(180deg, #FFFFFF 12%, #D1D5DB 58%, #838894 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-pitch {
@@ -399,10 +402,26 @@ button {
 }
 
 @keyframes sculpture-sweep {
-  0%, 55% { left: -90%; opacity: 0; }
-  65% { opacity: 1; }
-  90% { left: 140%; opacity: 0; }
-  100% { left: 140%; opacity: 0; }
+
+  0%,
+  55% {
+    left: -90%;
+    opacity: 0;
+  }
+
+  65% {
+    opacity: 1;
+  }
+
+  90% {
+    left: 140%;
+    opacity: 0;
+  }
+
+  100% {
+    left: 140%;
+    opacity: 0;
+  }
 }
 
 .sculpture-logo-core {
@@ -874,9 +893,19 @@ body[data-channel="2"] .showcase-ambient {
 }
 
 @keyframes dl-sweep {
-  0% { left: -135%; opacity: 0; }
-  20% { opacity: 1; }
-  100% { left: 165%; opacity: 0; }
+  0% {
+    left: -135%;
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    left: 165%;
+    opacity: 0;
+  }
 }
 
 @keyframes dl-ring-pulse {
@@ -884,10 +913,12 @@ body[data-channel="2"] .showcase-ambient {
     transform: scale(0.92);
     box-shadow: 0 0 0 rgba(255, 255, 255, 0);
   }
+
   45% {
     transform: scale(1.09);
     box-shadow: 0 0 72px rgba(255, 255, 255, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
+
   100% {
     transform: scale(1);
     box-shadow: 0 0 48px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.24);
@@ -1095,11 +1126,13 @@ body[data-channel="2"] .showcase-ambient {
     transform: none !important;
     transition: none !important;
   }
+
   .sculpture-glare-sweep,
   .download-emblem.is-flashing .download-sweep,
   .download-emblem.is-flashing .download-ring {
     animation: none !important;
   }
+
   .giant-dial-svg {
     transition: none !important;
   }
@@ -1111,66 +1144,83 @@ body[data-channel="2"] .showcase-ambient {
     gap: 44px;
     text-align: left;
   }
+
   .hero-sculpture-col {
     order: -1;
   }
+
   .hardware-sculpture {
     width: clamp(210px, 54vw, 270px);
   }
+
   .manifesto-track {
     min-height: auto;
     padding: 88px 0;
   }
+
   .manifesto-sticky {
     position: static;
     height: auto;
     padding: 0;
   }
+
   .m-word {
     color: #FFFFFF;
   }
+
   /* Release sticky 360vh scroll lock cleanly on mobile */
   .showcase-track {
     height: auto;
     padding: 72px 0;
   }
+
   .showcase-sticky {
     position: relative;
     height: auto;
     padding: 0;
   }
+
   .giant-dial-wrap {
     top: -12px;
     width: 140vw;
   }
+
   .giant-dial-svg {
     transition: transform 0.68s var(--ease-apple);
   }
+
   .dial-fixed-pointer {
     top: -18px;
   }
+
   .showcase-stage-inner {
     padding: 36px 20px 0;
   }
+
   .cinema-video-shell {
     width: 100%;
     max-height: none;
     transform: none;
     border-radius: 14px;
   }
+
   .showcase-caption-row {
     width: 100%;
   }
+
   .arch-grid {
     grid-template-columns: 1fr;
     gap: 40px;
   }
+
   .explainer-grid {
     grid-template-columns: 1fr;
   }
+
   .explainer-cell:nth-child(odd) {
     border-right: none;
   }
+
   .legal-panel.is-active {
     grid-template-columns: 1fr;
     gap: 28px;
@@ -1181,13 +1231,16 @@ body[data-channel="2"] .showcase-ambient {
   .container {
     padding: 0 20px;
   }
+
   .topbar-nav {
     display: none;
   }
+
   .hero-chapter {
     min-height: auto;
     padding: 96px 0 64px;
   }
+
   .architecture-section,
   .download-section,
   .legal-section {
@@ -1200,39 +1253,48 @@ body[data-channel="2"] .showcase-ambient {
   .topbar-wrap {
     padding: 0 10px;
   }
+
   .topbar {
     padding: 0 6px 0 12px;
     height: 46px;
     gap: 8px;
   }
+
   .brand-name {
     font-size: 0.88rem;
   }
+
   .brand-ver {
     display: none;
   }
+
   .btn-topbar-download {
     height: 32px;
     padding: 0 12px;
     font-size: 0.78rem;
   }
+
   .btn-topbar-github {
     width: 32px;
     height: 32px;
   }
+
   .hero-cta-row {
     flex-direction: column;
     align-items: stretch;
   }
+
   .chapter-pill-btn {
     padding: 0 12px;
     font-size: 0.76rem;
   }
+
   .cinema-hud {
     inset: auto 8px 8px 8px;
     padding: 4px 8px;
     gap: 8px;
   }
+
   .footer-top {
     flex-direction: column;
     align-items: flex-start;
