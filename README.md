@@ -62,7 +62,6 @@ https://github.com/user-attachments/assets/e03d3bb2-3998-4b7f-84cf-8a2fea876b71
 * **Auto-updater:** checks GitHub Releases and updates in place without touching your settings.
 
 ---
-
 ## Quick Start
 
 1. Download **`LyricalWidget.exe`** from the [**Latest Release**](https://github.com/9headache/LyricalWidget/releases/latest) page. It is standalone, so you do not need to install .NET.
@@ -70,6 +69,7 @@ https://github.com/user-attachments/assets/e03d3bb2-3998-4b7f-84cf-8a2fea876b71
    > *The binary is not code-signed, so Windows SmartScreen may warn on first launch. Click **More info → Run anyway**.*
 3. Play a song on Spotify and right-click the system tray icon to switch themes, lock position, or open Vibe Mode.
 
+> **macOS Users:** LyricalWidget is a native Windows (.NET 10 WPF) app. An experimental community macOS port is maintained separately on [@Atuldmg's fork](https://github.com/Atuldmg/LyricalWidget).
 ---
 
 <details>
