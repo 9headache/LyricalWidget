@@ -22,15 +22,15 @@
 
 ### Fullscreen Vibe Mode (`Moonlight Bloom`, `Fisheye` & `Ambient Idle`)
 
-https://github.com/user-attachments/assets/9fb7336d-8aee-4abd-bf71-808c141dafab
+https://github.com/user-attachments/assets/7f95c43a-cab8-44f3-9e3a-1ea7145f7861
 
 ### Desktop Widget (Quick-Access Bars & Album Art Resizer)
 
-https://github.com/user-attachments/assets/e03d3bb2-3998-4b7f-84cf-8a2fea876b71
+https://github.com/user-attachments/assets/9fb7336d-8aee-4abd-bf71-808c141dafab
 
 ### In-Game Overlay (Click-Through & Gaming Mode)
 
-https://github.com/user-attachments/assets/7f95c43a-cab8-44f3-9e3a-1ea7145f7861
+https://github.com/user-attachments/assets/e03d3bb2-3998-4b7f-84cf-8a2fea876b71
 
 ---
 
