@@ -32,6 +32,7 @@ public class TrayIconService : IDisposable
     private readonly WinForms.ToolStripMenuItem _animFluidWave;
     private readonly WinForms.ToolStripMenuItem _animMoonlight;
     private readonly WinForms.ToolStripMenuItem _vibeMonitorMenu;
+    private readonly WinForms.ToolStripMenuItem _presetMenu;
     private readonly WinForms.ToolStripMenuItem _browserClock;
     private readonly WinForms.ToolStripMenuItem _browserLyrics;
     private readonly WinForms.ToolStripMenuItem _browserPlayer;
@@ -49,6 +50,7 @@ public class TrayIconService : IDisposable
     public event Action<string>? BackgroundStyleSelected;
     public event Action<string>? AnimationStyleSelected;
     public event Action<string>? VibeMonitorSelected;
+    public event Action<string>? PresetSelected;
     public event Action<BrowserMediaBehavior>? BrowserMediaBehaviorSelected;
     public event Action<bool>? ThemeColoredLyricsToggled;
     public event Action<bool>? AutoHideToggled;
@@ -267,6 +269,8 @@ public class TrayIconService : IDisposable
         contextMenu.Items.Add(_fullscreenVibeMenuItem);
         contextMenu.Items.Add(_reconnectMenuItem);
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
+        _presetMenu = new WinForms.ToolStripMenuItem("Presets");
+        contextMenu.Items.Add(_presetMenu);
         contextMenu.Items.Add(modeSubMenu);
         contextMenu.Items.Add(bgSubMenu);
         contextMenu.Items.Add(styleSubMenu);
@@ -356,6 +360,20 @@ public class TrayIconService : IDisposable
             });
         }
         if (_vibeMonitorMenu.DropDown is WinForms.ToolStripDropDownMenu menu) ChromeMenuRenderer.Apply(menu);
+    }
+
+    public void UpdatePresets(IReadOnlyList<string> names, string? active)
+    {
+        _presetMenu.DropDownItems.Clear();
+        _presetMenu.Visible = names.Count > 0;
+        foreach (string name in names)
+        {
+            _presetMenu.DropDownItems.Add(new WinForms.ToolStripMenuItem(name.Replace("&", "&&"), null, (s, e) => PresetSelected?.Invoke(name))
+            {
+                Checked = name == active
+            });
+        }
+        if (_presetMenu.DropDown is WinForms.ToolStripDropDownMenu menu) ChromeMenuRenderer.Apply(menu);
     }
 
     public void UpdateThemeColoredLyricsState(bool enabled)

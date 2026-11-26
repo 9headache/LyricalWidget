@@ -9,6 +9,7 @@ using System.Windows.Media.Animation;
 using LyricalWidget.Common;
 using LyricalWidget.Interop;
 using LyricalWidget.Services;
+using WinForms = System.Windows.Forms;
 
 namespace LyricalWidget;
 
@@ -24,20 +25,12 @@ public partial class MainWindow : Window
 
     private void RestoreSettings()
     {
-        double vLeft = SystemParameters.VirtualScreenLeft;
-        double vTop = SystemParameters.VirtualScreenTop;
-        double vWidth = SystemParameters.VirtualScreenWidth;
-        double vHeight = SystemParameters.VirtualScreenHeight;
-
         Width = Math.Max(MinWidth, _settings.Width);
         Height = Math.Max(MinHeight, _settings.Height);
 
-        if (_settings.HasCustomPosition &&
-            _settings.Left >= vLeft && _settings.Left + Width <= vLeft + vWidth &&
-            _settings.Top >= vTop && _settings.Top + Height <= vTop + vHeight)
+        if (_settings.HasCustomPosition)
         {
-            Left = _settings.Left;
-            Top = _settings.Top;
+            PlaceWidget(new Rect(_settings.Left, _settings.Top, Width, Height));
         }
         else
         {
@@ -49,6 +42,16 @@ public partial class MainWindow : Window
         _isManuallyHidden = _settings.IsHidden;
         _isAutoHidden = false;
 
+        SyncControlsToSettings();
+
+        if (_isManuallyHidden)
+        {
+            Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SyncControlsToSettings()
+    {
         SliderFontSize.Value = _settings.FontSize;
         LblFontSize.Text = $"{_settings.FontSize:0}px";
 
@@ -70,11 +73,6 @@ public partial class MainWindow : Window
         ChkEcoFps.IsChecked = (_settings.FpsCap <= 30);
 
         ApplyGamingMode(_settings.GamingMode);
-
-        if (_isManuallyHidden)
-        {
-            Visibility = Visibility.Collapsed;
-        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -175,14 +173,28 @@ public partial class MainWindow : Window
         _trayService.ShowStartupGuideRequested += () => Dispatcher.Invoke(ShowStartupGuide);
         _trayService.WhatsNewRequested += () => Dispatcher.Invoke(ShowWhatsNew);
         _trayService.BrowserMediaBehaviorSelected += behavior => Dispatcher.Invoke(() => SetBrowserMediaBehavior(behavior));
+        _trayService.PresetSelected += name => Dispatcher.Invoke(() => LoadPreset(name));
         _trayService.VibeMonitorSelected += device => Dispatcher.Invoke(() => SetPreferredVibeMonitor(device));
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         RefreshVibeMonitors();
+        RebuildPresetList();
         _trayService.ResetPositionRequested += () => Dispatcher.Invoke(ResetOverlayPosition);
         _trayService.ReportBugRequested += () => Dispatcher.Invoke(ShowBugReporter);
         _trayService.ClearLyricsCacheRequested += () => _lyricsService.ClearCache();
         _trayService.ExitRequested += () => Dispatcher.Invoke(CloseApp);
 
+        SyncTrayState();
+        _trayService.UpdateVisibilityState(!_isManuallyHidden);
+
+        _audioBeatService.BassEnergyChanged += OnBassEnergyChanged;
+
+        ApplyLockState(_isLocked);
+        ApplyDisplayModeAndTheme();
+    }
+
+    private void SyncTrayState()
+    {
+        if (_trayService == null) return;
         _trayService.UpdateDisplayModeState(_settings.DisplayMode);
         _trayService.UpdateBackgroundStyleState(_settings.BackgroundStyle);
         _trayService.UpdateAnimationStyleState(_settings.AnimationStyle);
@@ -195,12 +207,6 @@ public partial class MainWindow : Window
         _trayService.UpdateTrackBannerState(_settings.ShowTrackSwitchBanner);
         _trayService.UpdateGamingModeState(_settings.GamingMode);
         _trayService.UpdateFpsCapState(_settings.FpsCap);
-        _trayService.UpdateVisibilityState(!_isManuallyHidden);
-
-        _audioBeatService.BassEnergyChanged += OnBassEnergyChanged;
-
-        ApplyLockState(_isLocked);
-        ApplyDisplayModeAndTheme();
     }
 
     private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -247,7 +253,9 @@ public partial class MainWindow : Window
         else if (msg == NativeMethods.WM_EXITSIZEMOVE)
         {
             HideAllSnapGuides();
+            HideDragOutline();
             SaveCurrentBounds();
+            OnMoveOrResizeEnded();
         }
         return IntPtr.Zero;
     }
@@ -418,18 +426,17 @@ public partial class MainWindow : Window
 
         if (locked)
         {
-            UnlockToolbar.Visibility = Visibility.Collapsed;
             ResizeGripThumb.Visibility = Visibility.Collapsed;
             HideAllSnapGuides();
             ShowMediaControls(false);
         }
         else
         {
-            UnlockToolbar.Visibility = Visibility.Visible;
             ResizeGripThumb.Visibility = Visibility.Visible;
         }
 
         ApplyDisplayModeAndTheme();
+        UpdateToolbarPopup();
         _trayService?.UpdateLockState(locked);
     }
 
@@ -462,9 +469,44 @@ public partial class MainWindow : Window
         if (newHeight >= MinHeight) Height = newHeight;
     }
 
+    /// <summary>
+    /// Puts the widget exactly where it was saved. Only when that spot is no longer on any connected display
+    /// (a monitor was unplugged) is it moved onto the primary one, keeping its size.
+    /// </summary>
+    private void PlaceWidget(Rect saved)
+    {
+        Width = Math.Max(MinWidth, saved.Width);
+        Height = Math.Max(MinHeight, saved.Height);
+
+        // Screen coordinates are in pixels of the primary display's DPI; the window's are in DIPs
+        double scale = WinForms.Screen.PrimaryScreen is { } primary && primary.Bounds.Width > 0
+            ? SystemParameters.PrimaryScreenWidth / primary.Bounds.Width
+            : 1.0;
+        var rect = new Rect(saved.Left, saved.Top, Width, Height);
+        bool onScreen = false;
+        foreach (var screen in WinForms.Screen.AllScreens)
+        {
+            var work = screen.WorkingArea;
+            var area = new Rect(work.X * scale, work.Y * scale, work.Width * scale, work.Height * scale);
+            var visible = Rect.Intersect(area, rect);
+            if (!visible.IsEmpty && visible.Width >= 48 && visible.Height >= 32) onScreen = true;
+        }
+
+        if (onScreen)
+        {
+            Left = saved.Left;
+            Top = saved.Top;
+            return;
+        }
+
+        var workArea = SystemParameters.WorkArea;
+        Left = Math.Clamp(saved.Left, workArea.Left, Math.Max(workArea.Left, workArea.Right - Width));
+        Top = Math.Clamp(saved.Top, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - Height));
+    }
+
     private void SaveCurrentBounds()
     {
-        if (_isClosing) return;
+        if (_isClosing || _applyingPreset) return;
 
         _settings.Left = Left;
         _settings.Top = Top;
@@ -474,7 +516,8 @@ public partial class MainWindow : Window
         _settings.IsHidden = _isManuallyHidden;
         _settings.HasCustomPosition = true;
 
-        SettingsService.Save(_settings);
+        // Called for every pixel of a drag: the file is written once things are still
+        ScheduleSettingsSave();
     }
 
     public void EnsureTopmost()

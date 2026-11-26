@@ -24,6 +24,12 @@ public sealed partial class MoonlightBloomRenderer
         public TextBlock? Sheen { get; init; }
         public TranslateTransform? SheenShift { get; init; }
         public FrameworkElement? Surge { get; init; }   // Extra bloom for the climax word
+        public required TextBlock Text { get; init; }
+        public required DropShadowEffect InnerGlow { get; init; }
+        public required DropShadowEffect OuterGlow { get; init; }
+        public TextBlock? SurgeText { get; init; }
+        public BakedImage? BakedGlyphs { get; init; }   // Game Mode: the glowing word as a finished picture
+        public BakedImage? BakedSurge { get; init; }
         public List<Droplet> Droplets { get; } = new();
         public double Age = -1.0;                    // Seconds since revealed; negative while hidden
     }
@@ -31,6 +37,20 @@ public sealed partial class MoonlightBloomRenderer
     private sealed class Phrase
     {
         private readonly List<Word> _words = new();
+
+        /// <summary>Recolours every word. Each cached word bitmap is redrawn once, not every frame.</summary>
+        public void ApplyTint(MoonlightTint? tint)
+        {
+            foreach (var w in _words)
+            {
+                w.Text.Foreground = tint?.TextBrush ?? Brushes.White;
+                w.InnerGlow.Color = tint?.InnerGlow ?? Color.FromRgb(0xE4, 0xE4, 0xE7);
+                w.OuterGlow.Color = tint?.OuterGlow ?? Colors.White;
+                if (w.SurgeText != null) w.SurgeText.Foreground = tint?.GlowBrush ?? Brushes.White;
+                w.BakedGlyphs?.Recolor(((SolidColorBrush)w.Text.Foreground).Color, w.InnerGlow.Color, w.OuterGlow.Color);
+                if (w.SurgeText != null) w.BakedSurge?.Recolor(((SolidColorBrush)w.SurgeText.Foreground).Color, Colors.White, Colors.White);
+            }
+        }
         private readonly double[] _rowX;
         private readonly double[] _rowVelocity;
         private readonly double _rowHeight;
@@ -163,10 +183,11 @@ public sealed partial class MoonlightBloomRenderer
                 Foreground = Brushes.White,
                 Effect = new DropShadowEffect { BlurRadius = 9, ShadowDepth = 0, Color = Color.FromRgb(0xE4, 0xE4, 0xE7), Opacity = 0.55, RenderingBias = RenderingBias.Performance }
             };
+            var outerGlow = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 0, Color = Colors.White, Opacity = 0.60, RenderingBias = RenderingBias.Performance };
             var bloom = new Border
             {
                 Child = text,
-                Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 0, Color = Colors.White, Opacity = 0.60, RenderingBias = RenderingBias.Performance }
+                Effect = outerGlow
             };
 
             var scale = new ScaleTransform(0.88, 0.88, width / 2.0, _rowHeight / 2.0);
@@ -175,31 +196,45 @@ public sealed partial class MoonlightBloomRenderer
             group.Children.Add(scale);
             group.Children.Add(translate);
 
-            // The zooming word is cached larger so it stays sharp at full size
-            var glyphs = new Border
+            // Cached at the screen's real pixel density, larger for the zooming word, and larger again under the
+            // lens, which magnifies the middle by up to 1 / (1 - Strength): otherwise the bitmap is stretched
+            BakedImage? bakedGlyphs = null;
+            BakedImage? bakedSurge = null;
+            double cacheScale = Math.Max(1.0, dpi) * (isClimaxWord ? 1.5 : 1.0) * (_lens ? 1.0 / (1.0 - FisheyeLens.Strength) : 1.0);
+            FrameworkElement glyphs = lite
+                // Game Mode draws on the CPU, where the two glows would be blurred again on every frame.
+                // Drawn once into a picture instead, the word then costs no more than any image.
+                ? bakedGlyphs = new BakedImage(new GlyphBake(token.Text, Font, FontSize, Colors.White, Color.FromRgb(0xE4, 0xE4, 0xE7), Colors.White, 0.0), padding: 30.0, cacheScale)
+                : new Border
             {
                 Child = bloom,
-                CacheMode = new BitmapCache { RenderAtScale = Math.Max(1.0, dpi) * (isClimaxWord ? 1.5 : 1.0) * (_lens ? 1.3 : 1.0), SnapsToDevicePixels = false }
+                CacheMode = new BitmapCache { RenderAtScale = cacheScale, SnapsToDevicePixels = false }
             };
 
             var element = new Grid { Opacity = 0.0, RenderTransform = group, IsHitTestVisible = false };
 
             FrameworkElement? surge = null;
+            TextBlock? surgeText = null;
             if (isClimaxWord)
             {
-                surge = new Border
+                var surgeBlock = new TextBlock
+                {
+                    Text = token.Text,
+                    FontFamily = Font,
+                    FontWeight = FontWeights.Black,
+                    FontSize = FontSize,
+                    Foreground = Brushes.White,
+                    Effect = new BlurEffect { Radius = Math.Clamp(FontSize * 0.42, 12.0, 60.0), RenderingBias = RenderingBias.Performance }
+                };
+                surgeText = surgeBlock;
+                double surgeBlur = Math.Clamp(FontSize * 0.42, 12.0, 60.0);
+                surge = lite
+                    ? bakedSurge = new BakedImage(new GlyphBake(token.Text, Font, FontSize, Colors.White, Colors.White, Colors.White, surgeBlur), padding: surgeBlur + 4.0, Math.Max(1.0, dpi) * 0.5) { Opacity = 0.0 }
+                    : new Border
                 {
                     Opacity = 0.0,
                     CacheMode = new BitmapCache { RenderAtScale = Math.Max(1.0, dpi) * 0.5 },
-                    Child = new TextBlock
-                    {
-                        Text = token.Text,
-                        FontFamily = Font,
-                        FontWeight = FontWeights.Black,
-                        FontSize = FontSize,
-                        Foreground = Brushes.White,
-                        Effect = new BlurEffect { Radius = Math.Clamp(FontSize * 0.42, 12.0, 60.0), RenderingBias = RenderingBias.Performance }
-                    }
+                    Child = surgeBlock
                 };
                 element.Children.Add(surge);
                 Panel.SetZIndex(element, 1);
@@ -248,7 +283,13 @@ public sealed partial class MoonlightBloomRenderer
                 Row = row,
                 Sheen = sheen,
                 SheenShift = sheenShift,
-                Surge = surge
+                Surge = surge,
+                Text = text,
+                InnerGlow = (DropShadowEffect)text.Effect,
+                OuterGlow = outerGlow,
+                SurgeText = surgeText,
+                BakedGlyphs = bakedGlyphs,
+                BakedSurge = bakedSurge
             };
 
             if (dropletCount > 0)

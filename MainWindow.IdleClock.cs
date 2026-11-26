@@ -42,6 +42,7 @@ public partial class MainWindow
         IdleClockRoot.BeginAnimation(UIElement.OpacityProperty, fadeInClock);
 
         ApplyIdleClockStyling();
+        ApplyWidgetFisheye();
         UpdateClockTime(0.016, forceUpdate: true);
     }
 
@@ -142,14 +143,32 @@ public partial class MainWindow
         };
     }
 
+    private bool AnyClockSlotRolling()
+    {
+        if (_clockSlots == null) return false;
+        foreach (var slot in _clockSlots)
+        {
+            if (slot.IsRolling) return true;
+        }
+        return false;
+    }
+
     private void UpdateClockTime(double dt, bool forceUpdate = false)
     {
         EnsureClockSlotsInitialized();
         if (_clockSlots == null) return;
 
         var now = DateTime.Now;
+        int minute = (now.Hour * 60) + now.Minute;
+        bool newMinute = minute != _shownClockMinute;
+        if (!newMinute && !forceUpdate && !AnyClockSlotRolling())
+        {
+            RestClockUntilNextMinute();
+            return;
+        }
+        _shownClockMinute = minute;
         string timeStr = now.ToString("HHmm");
-        IdleClockDateText.Text = now.ToString("dddd, MMMM d");
+        if (newMinute || forceUpdate) IdleClockDateText.Text = now.ToString("dddd, MMMM d");
 
         for (int i = 0; i < 4; i++)
         {

@@ -52,12 +52,16 @@ public partial class MainWindow : Window
         _mediaService.BrowserBehavior = _settings.BrowserMediaBehavior;
         RestoreSettings();
         InitAlbumArt();
+        InitQuickAccess();
+        InitResponsiveness();
+        InitWidgetFisheye();
+        InitFullscreenPill();
 
         Loaded += OnLoaded;
         Closing += OnClosing;
         MouseDown += OnWindowMouseDown;
         LocationChanged += (s, e) => SaveCurrentBounds();
-        SizeChanged += OnWindowSizeChanged;
+        // OnWindowSizeChanged re-wraps every line, so it runs once a resize has settled (MainWindow.Responsiveness.cs)
         ResizeGripThumb.DragDelta += OnResizeGripDragDelta;
     }
 
@@ -76,44 +80,27 @@ public partial class MainWindow : Window
         // Hidden until the welcome window or splash has gone
         Opacity = 0.0;
 
-        if (!_settings.HasSeenWelcome)
+        if (!_settings.HasCompletedOnboarding)
         {
-            var welcome = new WelcomeWindow(isFirstBoot: true, isReplay: false, closedCallback: () =>
+            // Opens wherever the widget was saved: the guide never moves it
+            ShowOnboarding(() =>
             {
-                Dispatcher.Invoke(() =>
+                if (_isClosing) return;
+                if (IsFullscreenActive)
                 {
-                    if (_isClosing) return;
-                    _settings.HasSeenWelcome = true;
-                    _settings.LastSeenVersion = AppVersionInfo.Version;
-                    SettingsService.Save(_settings);
-                    if (IsFullscreenActive)
-                    {
-                        Opacity = 1.0;
-                        return;
-                    }
-                    if (!_settings.HasCustomPosition)
-                    {
-                        // Centred where the welcome window dissolved
-                        Left = Math.Max(0, (SystemParameters.PrimaryScreenWidth - Width) / 2.0);
-                        Top = Math.Max(0, (SystemParameters.PrimaryScreenHeight - Height) / 2.0);
-                        _settings.Left = Left;
-                        _settings.Top = Top;
-                        _settings.HasCustomPosition = true;
-                        SettingsService.Save(_settings);
-                    }
+                    Opacity = 1.0;
+                    return;
+                }
 
-                    EnsureTopmost();
-                    ApplyEffectiveVisibility();
+                EnsureTopmost();
+                ApplyEffectiveVisibility();
 
-                    var fadeIn = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(300))
-                    {
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                    };
-                    BeginAnimation(OpacityProperty, fadeIn);
-                });
+                var fadeIn = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(300))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                BeginAnimation(OpacityProperty, fadeIn);
             });
-            _guideWindow = welcome;
-            welcome.Show();
         }
         else
         {
@@ -222,6 +209,7 @@ public partial class MainWindow : Window
 
         _isFullscreenActive = true;
         Visibility = Visibility.Hidden;
+        UpdateToolbarPopup();
         StopRenderingLoop();
 
         _vibeWindow.Closed += (s, e) =>
@@ -236,6 +224,8 @@ public partial class MainWindow : Window
             UpdateAutoHideState(_mediaService.IsPlaying);
             EnsureTopmost();
             EnsureRenderingSubscribed();
+            UpdateToolbarPopup();
+            UpdatePresetHighlight();
         };
 
         _vibeWindow.Show();
@@ -252,6 +242,10 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _isClosing = true;
+        ToolbarPopup.IsOpen = false;
+        FullscreenPillPopup.IsOpen = false;
+        FisheyeWarningPopup.IsOpen = false;
+        _dragOutline?.Dispose();
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _mediaShortcutTimer?.Stop();
         StopRenderingLoop();
@@ -287,10 +281,11 @@ public partial class MainWindow : Window
         }
 
         _hwndSource?.RemoveHook(HwndHook);
+        _layoutSettleTimer?.Stop();
         _trayService?.Dispose();
         _mediaService.Dispose();
         _lyricsService.Dispose();
 
-        SaveCurrentBounds();
+        FlushSettings();
     }
 }

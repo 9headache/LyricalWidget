@@ -24,6 +24,29 @@ public partial class FullscreenVibeWindow
         if (IsMoonlightActive) ApplyLayoutMode(false);
     }
 
+    /// <summary>Brings an open window in line with a preset that has just been loaded.</summary>
+    public void ApplyPreset(WidgetState state)
+    {
+        SetKineticVibe(_settings.FullscreenKineticVibe);
+        _spotlightFogRenderer.SetBackdropMode(_settings.SpotlightBackdropMode);
+        _isAudioReactiveEnabled = _settings.AudioReactiveGlow;
+        UpdateAudioReactiveButtonLabel();
+        bool kinetic = state.VibeLayoutMode == "Kinetic";
+        if (Enum.TryParse<KineticPreset>(state.VibeKineticPreset, out var preset)) SetActiveKineticPreset(preset);
+        ApplyLayoutMode(kinetic);
+        ApplyFisheye();
+        UpdateFisheyeButton();
+
+        if (state.VibeMonitor != null && CurrentMonitor()?.DeviceName != state.VibeMonitor) MoveToMonitor(state.VibeMonitor);
+        if (state.VibeFullscreen == true) EnterFullscreen();
+        else if (state.VibeFullscreen == false) ExitFullscreen();
+        if (!_isFullscreen)
+        {
+            if (state.VibeWindowState == "Maximized") WindowState = WindowState.Maximized;
+            else if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal;
+        }
+    }
+
     private void SetMoonlightVisible(bool visible)
     {
         MoonlightHost.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;

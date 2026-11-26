@@ -83,15 +83,12 @@ public partial class MainWindow : Window
         foreach (var (button, size) in AlbumArtPresets())
         {
             bool active = Math.Abs(size - wanted) < 0.5;
-            button.Background = new SolidColorBrush(active ? Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
-            button.BorderBrush = new SolidColorBrush(active ? Color.FromRgb(0xD4, 0xD4, 0xD8) : Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF));
+            button.Background = active ? PillActiveBrush : PillBrush;
+            button.BorderBrush = active ? PillActiveBorder : PillBorder;
         }
 
-        // The lyric column just changed width: wrap its lines to the new space
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-        {
-            if (!_isClosing) ComputeStaticLineLayouts();
-        }));
+        // The lyric column just changed width: its lines are re-wrapped once resizing pauses
+        ScheduleLayoutRefresh();
     }
 
     /// <summary>The wanted size, reduced only as far as the card needs so that nothing is cut off.</summary>

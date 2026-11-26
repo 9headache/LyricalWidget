@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,7 +15,7 @@ public enum BrowserMediaBehavior
 }
 
 /// <summary>Screen rectangle of the Vibe window when it is neither maximized nor fullscreen.</summary>
-public class VibeWindowBounds
+public record VibeWindowBounds
 {
     public double Left { get; set; }
     public double Top { get; set; }
@@ -73,6 +74,10 @@ public class AppSettings
 
     // Startup & Onboarding
     public bool HasSeenWelcome { get; set; } = false;
+    public bool HasCompletedOnboarding { get; set; } = false; // Answered the Getting Started card
+    public bool DismissedFullscreenPill { get; set; } = false; // "Have you tried Fullscreen Mode?"
+    public bool DismissedVibeGpuNotice { get; set; } = false; // Vibe Mode performance notice
+    public bool DismissedFisheyeGameModeWarning { get; set; } = false; // Fisheye + Game Mode warning
     public string? LastSeenVersion { get; set; } // Last version whose What's New was shown
     public bool HasCustomPosition { get; set; } = false;
 
@@ -83,6 +88,7 @@ public class AppSettings
 
     // Fullscreen Vibe & Kinetic Typography
     public string FullscreenLayoutMode { get; set; } = "Split"; // "Split", "Kinetic"
+    public bool RestoreVibeLayout { get; set; } = false; // A preset chose the layout; otherwise Vibe opens in Split
     public string FullscreenKineticVibe { get; set; } = "Auto"; // "Auto", "Calm", "Rap", "Pop"
     private string _fullscreenKineticPreset = "MoonlightBloom";
     public string FullscreenKineticPreset
@@ -92,6 +98,7 @@ public class AppSettings
     } // "MoonlightBloom" (default), "LiveCode", "Editorial", "Poster", "SpotlightFog"
     public bool ShowKineticPacingPill { get; set; } = true; // "Dynamic Word Pacing" notice when entering Kinetic
     public bool MoonlightFisheyeEnabled { get; set; } = false; // Wide-angle lens over the Moonlight Bloom stage
+    public bool WidgetFisheyeEnabled { get; set; } = false; // The same lens on the desktop widget
     public VibeWindowBounds? VibeWindowBounds { get; set; }
     public string VibeWindowState { get; set; } = "Normal"; // "Normal", "Maximized"
     public bool VibeIsFullscreen { get; set; } = false;
@@ -99,6 +106,8 @@ public class AppSettings
     public string SpotlightBackdropMode { get; set; } = "HdArtwork"; // "HdArtwork", "FluidColor"
     public bool FullscreenKineticIcons { get; set; } = true; // default ON
     public bool PosterDimMode { get; set; } = true; // Night-safe muted album palette cap (default ON)
+
+    public List<WidgetPreset> Presets { get; set; } = new(); // Saved by the user; the built-in ones live in WidgetPreset
 
     public static string NormalizeKineticPreset(string? val)
     {
@@ -162,21 +171,7 @@ public static class SettingsService
                 var settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions);
                 if (settings != null)
                 {
-                    if (settings.Width < 260) settings.Width = 640;
-                    if (settings.Height < 140) settings.Height = 280;
-                    if (settings.FontSize < 14 || settings.FontSize > 36) settings.FontSize = 22.0;
-                    if (settings.Opacity < 0.2 || settings.Opacity > 1.0) settings.Opacity = 0.95;
-                    if (settings.SyncOffsetMs < -500 || settings.SyncOffsetMs > 500) settings.SyncOffsetMs = 0;
-                    if (string.IsNullOrWhiteSpace(settings.DisplayMode)) settings.DisplayMode = "AlbumAndLyrics";
-                    if (string.IsNullOrWhiteSpace(settings.BackgroundStyle)) settings.BackgroundStyle = "Glass";
-                    if (string.IsNullOrWhiteSpace(settings.LyricAlignment)) settings.LyricAlignment = "Center";
-                    settings.AnimationStyle = AppSettings.NormalizeAnimationStyle(settings.AnimationStyle);
-                    settings.WidgetAlbumArtSize = AppSettings.ClampAlbumArtSize(settings.WidgetAlbumArtSize);
-                    if (!Enum.IsDefined(settings.BrowserMediaBehavior)) settings.BrowserMediaBehavior = BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
-                    if (settings.FpsCap != 30 && settings.FpsCap != 60) settings.FpsCap = 60;
-                    if (settings.FullscreenLayoutMode != "Kinetic") settings.FullscreenLayoutMode = "Split";
-                    if (string.IsNullOrWhiteSpace(settings.FullscreenKineticVibe)) settings.FullscreenKineticVibe = "Auto";
-                    settings.FullscreenKineticPreset = AppSettings.NormalizeKineticPreset(settings.FullscreenKineticPreset);
+                    Normalize(settings);
                     return settings;
                 }
             }
@@ -187,6 +182,27 @@ public static class SettingsService
         }
 
         return new AppSettings();
+    }
+
+    /// <summary>Replaces out-of-range values, from an old or hand-edited file or a preset, with usable ones.</summary>
+    public static void Normalize(AppSettings settings)
+    {
+        if (settings.Width < 260) settings.Width = 640;
+        if (settings.Height < 140) settings.Height = 280;
+        if (!(settings.FontSize >= 14 && settings.FontSize <= 36)) settings.FontSize = 22.0;
+        if (!(settings.Opacity >= 0.2 && settings.Opacity <= 1.0)) settings.Opacity = 0.95;
+        if (settings.SyncOffsetMs < -500 || settings.SyncOffsetMs > 500) settings.SyncOffsetMs = 0;
+        if (string.IsNullOrWhiteSpace(settings.DisplayMode)) settings.DisplayMode = "AlbumAndLyrics";
+        if (string.IsNullOrWhiteSpace(settings.BackgroundStyle)) settings.BackgroundStyle = "Glass";
+        if (string.IsNullOrWhiteSpace(settings.LyricAlignment)) settings.LyricAlignment = "Center";
+        settings.AnimationStyle = AppSettings.NormalizeAnimationStyle(settings.AnimationStyle);
+        settings.WidgetAlbumArtSize = AppSettings.ClampAlbumArtSize(settings.WidgetAlbumArtSize);
+        if (!Enum.IsDefined(settings.BrowserMediaBehavior)) settings.BrowserMediaBehavior = BrowserMediaBehavior.YouTubeLyricsWithClockFallback;
+        if (settings.FpsCap != 30 && settings.FpsCap != 60) settings.FpsCap = 60;
+        if (settings.FullscreenLayoutMode != "Kinetic") settings.FullscreenLayoutMode = "Split";
+        if (string.IsNullOrWhiteSpace(settings.FullscreenKineticVibe)) settings.FullscreenKineticVibe = "Auto";
+        settings.FullscreenKineticPreset = AppSettings.NormalizeKineticPreset(settings.FullscreenKineticPreset);
+        settings.Presets = WidgetPreset.Clean(settings.Presets);
     }
 
     public static void Save(AppSettings settings)

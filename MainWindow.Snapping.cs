@@ -76,6 +76,7 @@ public partial class MainWindow
         }
 
         System.Runtime.InteropServices.Marshal.StructureToPtr(rect, lParam, true);
+        ShowDragOutline(rect);
 
         SnapGuideLeft.Visibility = snapL ? Visibility.Visible : Visibility.Collapsed;
         SnapGuideRight.Visibility = snapR ? Visibility.Visible : Visibility.Collapsed;

@@ -107,8 +107,9 @@ public partial class FullscreenVibeWindow : Window
             _currentKineticPreset = KineticPreset.MoonlightBloom;
         }
 
+        if (_settings.RestoreVibeLayout) _isKineticMode = _settings.FullscreenLayoutMode == "Kinetic";
         // Moonlight Bloom picked as the lyric style carries straight into fullscreen
-        _isKineticMode = _settings.IsMoonlightBloom && _currentKineticPreset == KineticPreset.MoonlightBloom;
+        else _isKineticMode = _settings.IsMoonlightBloom && _currentKineticPreset == KineticPreset.MoonlightBloom;
 
         InitModeBarTimer();
         InitHoverMenus();
@@ -207,6 +208,7 @@ public partial class FullscreenVibeWindow : Window
         UpdateResponsiveLayout();
         UpdateMaximizedInset();
         InitAmbient();
+        ScheduleGpuNotice();
 
         CompositionTarget.Rendering += OnCompositionRendering;
 
@@ -430,6 +432,7 @@ public partial class FullscreenVibeWindow : Window
 
         _lyricsFetchCts?.Cancel();
         HideIntro();
+        _gpuNoticeTimer?.Stop();
         ShutdownAmbient();
         ShutdownWindowing();
         _modeBarTimer?.Stop();

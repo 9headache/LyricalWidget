@@ -193,6 +193,8 @@ public partial class MainWindow : Window
 
         CreateInterludeOrbsElements();
         ComputeStaticLineLayouts();
+
+        ApplyEffectBudget();
     }
 
     private void CreateInterludeOrbsElements()
@@ -542,6 +544,7 @@ public partial class MainWindow : Window
 
         long nowTicks = Stopwatch.GetTimestamp();
         int targetFps = _settings.FpsCap > 0 ? _settings.FpsCap : 60;
+        if (_settings.GamingMode) targetFps = Math.Min(targetFps, 30); // Never competes with a game for frames
         double targetInterval = 1.0 / Math.Clamp(targetFps, 15, 120);
 
         double elapsedSinceLastRender = _lastFrameTimestamp > 0
@@ -571,10 +574,13 @@ public partial class MainWindow : Window
         if (!_settings.GamingMode && _settings.AudioReactiveGlow)
         {
             double bassPulse = _currentBassEnergy;
-            SideAlbumAuraGlow.BlurRadius = 26.0 + (bassPulse * 16.0);
-            SideAlbumAuraGlow.Opacity = 0.55 + (bassPulse * 0.35);
-            AlbumOnlyShadow.BlurRadius = 26.0 + (bassPulse * 16.0);
-            AlbumOnlyShadow.Opacity = 0.55 + (bassPulse * 0.35);
+            // Whole steps: an unchanged value does not make the effect repaint
+            double auraBlur = Math.Round(26.0 + (bassPulse * 16.0));
+            double auraOpacity = Math.Round((0.55 + (bassPulse * 0.35)) * 50.0) / 50.0;
+            SideAlbumAuraGlow.BlurRadius = auraBlur;
+            SideAlbumAuraGlow.Opacity = auraOpacity;
+            AlbumOnlyShadow.BlurRadius = auraBlur;
+            AlbumOnlyShadow.Opacity = auraOpacity;
         }
 
         TimeSpan currentPos = _mediaService.CurrentPosition;
@@ -601,8 +607,9 @@ public partial class MainWindow : Window
         double currentSec = currentPos.TotalSeconds;
         double fillRatio = totalSec > 0 ? Math.Clamp(currentSec / totalSec, 0.0, 1.0) : 0.0;
 
-        SideProgressFill.Width = 150.0 * fillRatio;
-        AlbumOnlyProgressFill.Width = 165.0 * fillRatio;
+        // Rounded, so the bars (and the layered window) only repaint when a step is actually visible
+        SideProgressFill.Width = Math.Round(150.0 * fillRatio * 2.0) / 2.0;
+        AlbumOnlyProgressFill.Width = Math.Round(165.0 * fillRatio * 2.0) / 2.0;
 
         int curSecInt = (int)currentPos.TotalSeconds;
         if (curSecInt != _lastDisplayedCurSec)
@@ -628,6 +635,11 @@ public partial class MainWindow : Window
             if (!_mediaService.IsPlaying)
             {
                 StopRenderingLoop();
+            }
+            else
+            {
+                // Only the progress bar moves: four updates a second are plenty
+                _nextFrameDueTimestamp = nowTicks + (Stopwatch.Frequency / 4);
             }
             return;
         }

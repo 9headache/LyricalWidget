@@ -62,6 +62,7 @@ public sealed partial class MoonlightBloomRenderer
     private double _maxFontSize = double.PositiveInfinity;
     private double _builtMaxFontSize = double.PositiveInfinity;
     private bool _lensMode;
+    private MoonlightTint? _tint;
     private double _holdX;
     private double _holdY;
     private double _fit = 1.0; // Temporary rescale while HoldLayout is set
@@ -113,6 +114,16 @@ public sealed partial class MoonlightBloomRenderer
 
     /// <summary>Skips the per-word liquid sheen and droplets, for software rendering.</summary>
     public bool LiteEffects { get; set; }
+
+    /// <summary>Colours the words, their glow and the sparkles; null is the plain white and silver look.</summary>
+    public void SetTint(MoonlightTint? tint)
+    {
+        if (tint == _tint) return;
+        _tint = tint;
+        _current?.ApplyTint(tint);
+        foreach (var phrase in _exiting) phrase.ApplyTint(tint);
+        foreach (var sparkle in _sparkles) sparkle.Element.Fill = tint?.GlowBrush ?? Brushes.White;
+    }
 
     public void UpdateLyrics(LrcDocument lyrics)
     {
@@ -330,6 +341,7 @@ public sealed partial class MoonlightBloomRenderer
 
         _slideDirection = -_slideDirection;
         _current = new Phrase(tokens, _stageW, _stageH, _maxFontSize, dpi, climaxAtMs, _slideDirection, LiteEffects, _lensMode, _rng);
+        if (_tint != null) _current.ApplyTint(_tint);
         _phraseLayer.Children.Add(_current.Root);
         if (catchUp) _current.CatchUp(posMs, _stageW, _stageH);
     }

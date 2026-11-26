@@ -867,6 +867,26 @@
             </Border>
         </Grid>
 
+        <!-- Performance notice (see FullscreenVibeWindow.GpuNotice.cs). Cached as a bitmap, so its fade costs the stage nothing. -->
+        <Border x:Name="GpuNotice" Panel.ZIndex="12" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="500" Margin="24"
+                Visibility="Collapsed" Opacity="0" Focusable="False" Cursor="Hand" CornerRadius="18" Padding="22,18,22,16"
+                Background="#F20E1016" BorderBrush="#26FFFFFF" BorderThickness="1" MouseLeftButtonDown="OnGpuNoticeClicked">
+            <Border.CacheMode>
+                <BitmapCache/>
+            </Border.CacheMode>
+            <StackPanel>
+                <Border Height="1" Margin="0,-18,0,16" Background="{StaticResource ChromeSheenBrush}"/>
+                <TextBlock Text="Performance Notice — GPU Accelerated Mode" FontSize="14.5" FontWeight="SemiBold" Foreground="#E4E4E7" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12.5" Foreground="#A1A1AA" TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0"
+                           Text="Fullscreen Vibe Mode runs real-time 60 FPS shaders and visual effects, which uses moderate GPU performance while active (ongoing optimizations in progress). A dedicated GPU (such as NVIDIA GeForce or AMD Radeon) is recommended for the smoothest experience — for heavy gaming, switch back to the ultra-lightweight Desktop Widget."/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                    <Button Content="Don't show again" Style="{StaticResource PillBarButton}" Focusable="False" Margin="0,0,8,0"
+                            Foreground="#A1A1AA" Click="OnGpuNoticeDontShowClicked"/>
+                    <Button Content="Got it" Style="{StaticResource PillBarButton}" Focusable="False" Click="OnGpuNoticeGotItClicked"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- Dynamic Word Pacing notice, shown on every entry into Kinetic mode -->
         <Grid x:Name="PacingPill" Panel.ZIndex="9" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,34"
               Visibility="Collapsed" Opacity="0" Focusable="False" Cursor="Hand" RenderTransformOrigin="0.5,0.5"

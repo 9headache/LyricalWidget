@@ -75,6 +75,14 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ToolbarLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,5,4"/>
+        </Style>
+
         <!-- Pill button -->
         <Style x:Key="ToolbarPillButton" TargetType="Button">
             <Setter Property="Foreground" Value="#D4D4D8"/>
@@ -133,180 +141,176 @@
 
     <Grid x:Name="LayoutRoot" Margin="8">
         <Grid.RowDefinitions>
-            <!-- Row 0: Floating Unlock Toolbar (Alt + L) -->
+            <!-- Row 0: nothing sits here; the popover floats above -->
             <RowDefinition Height="Auto"/>
             <!-- Row 1: Main Content Card -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Unlock toolbar -->
-        <Border Grid.Row="0" x:Name="UnlockToolbar" Visibility="Collapsed"
-                CornerRadius="14" Margin="0,0,0,8" Padding="12,8"
-                Background="#F00E1016" BorderBrush="#1AFFFFFF" BorderThickness="1">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.6"/>
-            </Border.Effect>
+        <!-- Fullscreen Mode discovery pill (see MainWindow.Discovery.cs) -->
+        <Popup x:Name="FullscreenPillPopup" Placement="Custom" PlacementTarget="{Binding ElementName=CardBorder}" AllowsTransparency="True" StaysOpen="True">
+            <Border x:Name="FullscreenPill" CornerRadius="16" Padding="14,5,5,5" Background="#F00E1016" BorderBrush="#1CFFFFFF" BorderThickness="1"
+                    TextElement.FontFamily="Segoe UI">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Have you tried Fullscreen Mode?" FontSize="11.5" FontWeight="SemiBold" Foreground="#E4E4E7" VerticalAlignment="Center"/>
+                    <Button Content="Try it" Style="{StaticResource ToolbarPillButton}" Margin="10,0,4,0" Padding="10,3"
+                            Background="#2EFFFFFF" BorderBrush="#A1A1AA" Foreground="#F4F4F5" Click="OnTryFullscreenClicked"
+                            ToolTip="Open Vibe Mode (Alt + F)"/>
+                    <Button Content="Don't show again" Style="{StaticResource ToolbarPillButton}" Foreground="#A1A1AA"
+                            Background="Transparent" BorderBrush="Transparent" Click="OnHideFullscreenPillClicked"/>
+                </StackPanel>
+            </Border>
+        </Popup>
 
-            <StackPanel Orientation="Vertical">
-                <!-- Row 1: Mode Selectors, Background, Lines, Intensity, Alignment, Lock -->
-                <Grid Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+        <!-- Fisheye + Game Mode warning, in the same spot as the Fullscreen pill (which never shows in Game Mode) -->
+        <Popup x:Name="FisheyeWarningPopup" Placement="Custom" PlacementTarget="{Binding ElementName=CardBorder}" AllowsTransparency="True" StaysOpen="True">
+            <Border CornerRadius="16" Padding="14,5,5,5" Background="#F00E1016" BorderBrush="#1CFFFFFF" BorderThickness="1" TextElement.FontFamily="Segoe UI">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Fisheye uses significantly more GPU/CPU power in Game Mode — use at your own risk." FontSize="11" Foreground="#E4E4E7"
+                               VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="330"/>
+                    <Button Content="Got it" Style="{StaticResource ToolbarPillButton}" Margin="10,0,4,0" Padding="10,3"
+                            Background="#2EFFFFFF" BorderBrush="#A1A1AA" Foreground="#F4F4F5" Click="OnFisheyeWarningGotItClicked"/>
+                    <Button Content="Don't show again" Style="{StaticResource ToolbarPillButton}" Foreground="#A1A1AA"
+                            Background="Transparent" BorderBrush="Transparent" Click="OnFisheyeWarningDontShowClicked"/>
+                </StackPanel>
+            </Border>
+        </Popup>
 
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Mode -->
-                        <TextBlock Text="Mode:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <Button x:Name="BtnModeLyricsOnly" Content="Lyrics Only" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnModeLyricsOnlyClicked"/>
-                        <Button x:Name="BtnModeSideBySide" Content="Album + Lyrics" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnModeSideBySideClicked"/>
-                        <Button x:Name="BtnModeAlbumOnly" Content="Album Only" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnModeAlbumOnlyClicked"/>
-
-                        <!-- Background Style -->
-                        <TextBlock Text="Bg:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
-                        <Button x:Name="BtnBgTransparent" Content="Transparent" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBgTransparentClicked"/>
-                        <Button x:Name="BtnBgGlass" Content="Glassify" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnBgGlassClicked"/>
-
-                        <!-- Visible Lines Count -->
-                        <TextBlock Text="Lines:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
-                        <Button x:Name="BtnLinesAuto" Content="Auto" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLinesAutoClicked"/>
-                        <Button x:Name="BtnLines2" Content="2" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLines2Clicked"/>
-                        <Button x:Name="BtnLines3" Content="3" Style="{StaticResource ToolbarPillButton}" Margin="0,0,2,0" Click="OnLines3Clicked"/>
-                        <Button x:Name="BtnLines5" Content="5" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnLines5Clicked"/>
-
-                        <!-- Animation Style -->
-                        <TextBlock Text="Motion:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
-                        <Button x:Name="BtnMotionFluid" Content="Fluid" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnMotionFluidClicked" ToolTip="Fluid Wave"/>
-                        <Button x:Name="BtnMotionMoonlight" Content="Moonlight Bloom" Style="{StaticResource ToolbarPillButton}" Margin="0,0,7,0" Click="OnMotionMoonlightClicked" ToolTip="Glowing words on a black stage"/>
-
-                        <!-- Alignment toggle for Lyrics Only mode -->
-                        <StackPanel x:Name="AlignTogglePanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-                            <TextBlock Text="Align:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="2,0,5,0"/>
-                            <Button x:Name="BtnAlignCenter" Content="Center" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlignCenterClicked"/>
-                            <Button x:Name="BtnAlignLeft" Content="Left" Style="{StaticResource ToolbarPillButton}" Click="OnAlignLeftClicked"/>
+        <!-- Quick-access popover, shown while unlocked (see MainWindow.QuickAccess.cs) -->
+        <Popup x:Name="ToolbarPopup" Placement="Custom" PlacementTarget="{Binding ElementName=CardBorder}" AllowsTransparency="True"
+               PopupAnimation="Fade" StaysOpen="True">
+            <Border x:Name="UnlockToolbar" CornerRadius="14" Padding="12,10,6,6"
+                    Background="#F00E1016" BorderBrush="#1AFFFFFF" BorderThickness="1" TextElement.FontFamily="Segoe UI">
+                <ScrollViewer x:Name="ToolbarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <StackPanel Margin="0,0,6,0">
+                    <DockPanel Margin="0,0,0,2">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button Margin="0,0,8,4" x:Name="BtnFullscreenVibe" Content="Vibe (Alt+F)" Style="{StaticResource ToolbarPillButton}" Click="OnFullscreenVibeClicked" ToolTip="Open Fullscreen Vibe Mode"/>
+                            <TextBlock Margin="0,0,6,4" x:Name="LblLockShortcut" Text="Alt + L" FontSize="10" Foreground="#71717A" VerticalAlignment="Center"/>
+                            <Button Margin="0,0,0,4" x:Name="BtnLockOverlay" Content="Lock" Style="{StaticResource ToolbarPillButton}" Background="#2EFFFFFF" BorderBrush="#A1A1AA" Foreground="#F4F4F5" Click="OnLockClicked"/>
                         </StackPanel>
-                    </StackPanel>
+                        <TextBlock Text="Quick Access" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource ChromeTextBrush}" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                    </DockPanel>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="BtnFullscreenVibe" Content="Vibe (Alt+F)" Style="{StaticResource ToolbarPillButton}"
-                                Margin="0,0,8,0" Click="OnFullscreenVibeClicked" ToolTip="Open Fullscreen Vibe Mode"/>
-                        <TextBlock x:Name="LblLockShortcut" Text="Alt + L" FontSize="10" Foreground="#71717A" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <Button x:Name="BtnLockOverlay" Content="Lock" Style="{StaticResource ToolbarPillButton}"
-                                Background="#2EFFFFFF" BorderBrush="#A1A1AA" Foreground="#F4F4F5" Click="OnLockClicked"/>
-                    </StackPanel>
-                </Grid>
+                    <!-- Presets -->
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="Presets:" Style="{StaticResource ToolbarLabel}" VerticalAlignment="Top" Margin="0,4,6,0"/>
+                        <StackPanel>
+                            <WrapPanel x:Name="PresetOptions"/>
+                            <TextBlock x:Name="TxtNoPresets" Text="Save the current look to get back to it in one click." FontSize="10.5" Foreground="#71717A" Margin="0,4,0,6"/>
+                            <Button x:Name="BtnPresetSaveAs" Content="+ Save current" Style="{StaticResource ToolbarPillButton}" HorizontalAlignment="Left"
+                                    Margin="0,0,0,4" Click="OnPresetSaveAsClicked"/>
+                            <StackPanel x:Name="PresetNamePanel" Orientation="Horizontal" Margin="0,0,0,4" Visibility="Collapsed">
+                                <TextBox x:Name="TxtPresetName" Style="{StaticResource ChromeTextBox}" Width="170" MaxLength="24" FontSize="11" Padding="4,1"
+                                         VerticalContentAlignment="Center" TextChanged="OnPresetNameChanged" KeyDown="OnPresetNameKeyDown"/>
+                                <Button x:Name="BtnPresetSave" Content="Save" Style="{StaticResource ToolbarPillButton}" Margin="6,0,3,0" Click="OnPresetSaveClicked"/>
+                                <Button Content="Cancel" Style="{StaticResource ToolbarPillButton}" Click="OnPresetCancelClicked"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
 
-                <!-- Row 2: Sliders & Checkboxes -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.1*"/>
-                        <ColumnDefinition Width="1.1*"/>
-                        <ColumnDefinition Width="1.2*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Border Height="1" Background="#14FFFFFF" Margin="0,2,0,8"/>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <Grid>
-                            <TextBlock Text="Font Size" FontSize="10" Foreground="#A1A1AA"/>
-                            <TextBlock x:Name="LblFontSize" Text="22px" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Slider x:Name="SliderFontSize" Style="{StaticResource ModernSlider}" Minimum="14" Maximum="36" Value="22"
-                                SmallChange="1" LargeChange="2" Margin="0,3,0,0" ValueChanged="OnFontSizeChanged"/>
-                    </StackPanel>
+                    <WrapPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                            <TextBlock Text="Mode:" Style="{StaticResource ToolbarLabel}"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnModeLyricsOnly" Content="Lyrics Only" Style="{StaticResource ToolbarPillButton}" Click="OnModeLyricsOnlyClicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnModeSideBySide" Content="Album + Lyrics" Style="{StaticResource ToolbarPillButton}" Click="OnModeSideBySideClicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnModeAlbumOnly" Content="Album Only" Style="{StaticResource ToolbarPillButton}" Click="OnModeAlbumOnlyClicked"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                            <TextBlock Text="Bg:" Style="{StaticResource ToolbarLabel}"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnBgTransparent" Content="Transparent" Style="{StaticResource ToolbarPillButton}" Click="OnBgTransparentClicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnBgGlass" Content="Glassify" Style="{StaticResource ToolbarPillButton}" Click="OnBgGlassClicked"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                            <TextBlock Text="Motion:" Style="{StaticResource ToolbarLabel}"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnMotionFluid" Content="Fluid" Style="{StaticResource ToolbarPillButton}" Click="OnMotionFluidClicked" ToolTip="Fluid Wave"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnMotionMoonlight" Content="Moonlight Bloom" Style="{StaticResource ToolbarPillButton}" Click="OnMotionMoonlightClicked" ToolTip="Glowing words: on a black card with Glassify, straight over the desktop with Transparent"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnFisheye" Content="Fisheye" Style="{StaticResource ToolbarPillButton}" Click="OnFisheyeClicked" Visibility="Collapsed" ToolTip="Wide-angle lens for Moonlight Bloom"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                            <TextBlock Text="Lines:" Style="{StaticResource ToolbarLabel}"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnLinesAuto" Content="Auto" Style="{StaticResource ToolbarPillButton}" Click="OnLinesAutoClicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnLines2" Content="2" Style="{StaticResource ToolbarPillButton}" Click="OnLines2Clicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnLines3" Content="3" Style="{StaticResource ToolbarPillButton}" Click="OnLines3Clicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnLines5" Content="5" Style="{StaticResource ToolbarPillButton}" Click="OnLines5Clicked"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                            <TextBlock Text="Align:" Style="{StaticResource ToolbarLabel}"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnAlignCenter" Content="Center" Style="{StaticResource ToolbarPillButton}" Click="OnAlignCenterClicked"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnAlignLeft" Content="Left" Style="{StaticResource ToolbarPillButton}" Click="OnAlignLeftClicked"/>
+                        </StackPanel>
+                    </WrapPanel>
 
-                    <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <Grid>
-                            <TextBlock Text="Opacity" FontSize="10" Foreground="#A1A1AA"/>
-                            <TextBlock x:Name="LblOpacity" Text="95%" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Slider x:Name="SliderOpacity" Style="{StaticResource ModernSlider}" Minimum="0.30" Maximum="1.0" Value="0.95"
-                                SmallChange="0.05" LargeChange="0.1" Margin="0,3,0,0" ValueChanged="OnOpacityChanged"/>
-                    </StackPanel>
+                    <UniformGrid Columns="3" Margin="0,4,-12,8">
+                        <StackPanel Margin="0,0,12,0">
+                            <Grid>
+                                <TextBlock Text="Font Size" FontSize="10" Foreground="#A1A1AA"/>
+                                <TextBlock x:Name="LblFontSize" Text="22px" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider Margin="0,3,0,0" x:Name="SliderFontSize" Style="{StaticResource ModernSlider}" Minimum="14" Maximum="36" Value="22" SmallChange="1" LargeChange="2" ValueChanged="OnFontSizeChanged"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <Grid>
+                                <TextBlock Text="Opacity" FontSize="10" Foreground="#A1A1AA"/>
+                                <TextBlock x:Name="LblOpacity" Text="95%" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider Margin="0,3,0,0" x:Name="SliderOpacity" Style="{StaticResource ModernSlider}" Minimum="0.30" Maximum="1.0" Value="0.95" SmallChange="0.05" LargeChange="0.1" ValueChanged="OnOpacityChanged"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <Grid>
+                                <TextBlock Text="Sync (Alt+[/])" FontSize="10" Foreground="#A1A1AA"/>
+                                <TextBlock x:Name="LblSyncOffset" Text="+150 ms" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Slider Margin="0,3,0,0" x:Name="SliderSyncOffset" Style="{StaticResource ModernSlider}" Minimum="-500" Maximum="500" Value="150" SmallChange="50" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="50" ValueChanged="OnSyncOffsetChanged"/>
+                        </StackPanel>
+                    </UniformGrid>
 
-                    <StackPanel Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <Grid>
-                            <TextBlock Text="Sync Offset (Alt+[/])" FontSize="10" Foreground="#A1A1AA"/>
-                            <TextBlock x:Name="LblSyncOffset" Text="+150 ms" FontSize="10" Foreground="#D4D4D8" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Slider x:Name="SliderSyncOffset" Style="{StaticResource ModernSlider}" Minimum="-500" Maximum="500" Value="150"
-                                SmallChange="50" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="50" Margin="0,3,0,0"
-                                ValueChanged="OnSyncOffsetChanged"/>
-                    </StackPanel>
+                    <WrapPanel>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkThemeLyrics" VerticalAlignment="Center" Checked="OnThemeLyricsChecked" Unchecked="OnThemeLyricsChecked"> <TextBlock Text="Theme Lyrics" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkGamingMode" VerticalAlignment="Center" Checked="OnGamingModeChecked" Unchecked="OnGamingModeChecked"> <TextBlock Text="Game Mode" FontSize="10.5" FontWeight="SemiBold" Foreground="#F4F4F5"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkEcoFps" VerticalAlignment="Center" Checked="OnEcoFpsChecked" Unchecked="OnEcoFpsChecked"> <TextBlock Text="30 FPS" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkTrackBanner" VerticalAlignment="Center" Checked="OnTrackBannerChecked" Unchecked="OnTrackBannerChecked"> <TextBlock Text="Banner" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkAutoHide" VerticalAlignment="Center" Checked="OnAutoHideChecked" Unchecked="OnAutoHideChecked"> <TextBlock Text="Auto-hide" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkIdleClock" VerticalAlignment="Center" Checked="OnIdleClockChecked" Unchecked="OnIdleClockChecked"> <TextBlock Text="Idle Clock" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkSubLines" VerticalAlignment="Center" Checked="OnSubLinesChecked" Unchecked="OnSubLinesChecked"> <TextBlock Text="Sub-lines" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkAudioReactive" VerticalAlignment="Center" Checked="OnAudioReactiveChecked" Unchecked="OnAudioReactiveChecked"> <TextBlock Text="Aura Breath" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                        <CheckBox Margin="0,0,14,6" x:Name="ChkPacingPill" VerticalAlignment="Center" Checked="OnPacingPillChecked" Unchecked="OnPacingPillChecked" ToolTip="The Dynamic Word Pacing notice when fullscreen enters Kinetic mode"> <TextBlock Text="Show Dynamic Pacing Pill" FontSize="10.5" Foreground="#D4D4D8"/> </CheckBox>
+                    </WrapPanel>
 
-                    <!-- Checkboxes -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
-                        <CheckBox x:Name="ChkThemeLyrics" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnThemeLyricsChecked" Unchecked="OnThemeLyricsChecked">
-                            <TextBlock Text="Theme Lyrics" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkGamingMode" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnGamingModeChecked" Unchecked="OnGamingModeChecked">
-                            <TextBlock Text="Game Mode" FontSize="10.5" FontWeight="SemiBold" Foreground="#F4F4F5"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkEcoFps" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnEcoFpsChecked" Unchecked="OnEcoFpsChecked">
-                            <TextBlock Text="30 FPS" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkTrackBanner" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnTrackBannerChecked" Unchecked="OnTrackBannerChecked">
-                            <TextBlock Text="Banner" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkAutoHide" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnAutoHideChecked" Unchecked="OnAutoHideChecked">
-                            <TextBlock Text="Auto-hide" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkIdleClock" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnIdleClockChecked" Unchecked="OnIdleClockChecked">
-                            <TextBlock Text="Idle Clock" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkSubLines" VerticalAlignment="Center" Margin="0,0,8,0"
-                                  Checked="OnSubLinesChecked" Unchecked="OnSubLinesChecked">
-                            <TextBlock Text="Sub-lines" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                        <CheckBox x:Name="ChkAudioReactive" VerticalAlignment="Center"
-                                  Checked="OnAudioReactiveChecked" Unchecked="OnAudioReactiveChecked">
-                            <TextBlock Text="Aura Breath" FontSize="10.5" Foreground="#D4D4D8"/>
-                        </CheckBox>
-                    </StackPanel>
-                </Grid>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="Browser Media:" Style="{StaticResource ToolbarLabel}" VerticalAlignment="Top" Margin="0,4,6,0"/>
+                        <WrapPanel>
+                            <Button Margin="0,0,3,4" x:Name="BtnBrowserClock" Content="Show Clock" Style="{StaticResource ToolbarPillButton}" Click="OnBrowserClockClicked" ToolTip="Ignore browsers and keep the idle clock on screen"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnBrowserLyrics" Content="Lyrics (Clock if none)" Style="{StaticResource ToolbarPillButton}" Click="OnBrowserLyricsClicked" ToolTip="Show synced lyrics for music videos and the clock for everything else"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnBrowserPlayer" Content="Always Show Player" Style="{StaticResource ToolbarPillButton}" Click="OnBrowserPlayerClicked" ToolTip="Show the player for any browser media, with lyrics when available"/>
+                        </WrapPanel>
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="Album Art Size:" Style="{StaticResource ToolbarLabel}" VerticalAlignment="Top" Margin="0,4,6,0"/>
+                        <WrapPanel>
+                            <Button Margin="0,0,3,4" x:Name="BtnArtCompact" Content="Compact" Style="{StaticResource ToolbarPillButton}" Click="OnAlbumArtPresetClicked" ToolTip="44px"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnArtSmall" Content="Small" Style="{StaticResource ToolbarPillButton}" Click="OnAlbumArtPresetClicked" ToolTip="54px"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnArtMedium" Content="Medium" Style="{StaticResource ToolbarPillButton}" Click="OnAlbumArtPresetClicked" ToolTip="64px"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnArtLarge" Content="Large" Style="{StaticResource ToolbarPillButton}" Click="OnAlbumArtPresetClicked" ToolTip="80px"/>
+                            <Button Margin="0,0,3,4" x:Name="BtnArtDefault" Content="Default" Style="{StaticResource ToolbarPillButton}" Click="OnAlbumArtPresetClicked" ToolTip="150px"/>
+                            <StackPanel Orientation="Horizontal" Margin="6,0,0,4">
+                                <Slider x:Name="SliderAlbumArt" Style="{StaticResource ModernSlider}" Width="120" Minimum="36" Maximum="180" Value="150" SmallChange="2" LargeChange="10" ValueChanged="OnAlbumArtSizeChanged"/>
+                                <TextBlock Margin="8,0,0,0" x:Name="LblAlbumArt" Text="150px" FontSize="10" Foreground="#D4D4D8" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </DockPanel>
 
-                <!-- Row 3: Browser Media -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,0">
-                    <TextBlock Text="YouTube / Browser Media:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <Button x:Name="BtnBrowserClock" Content="Show Clock" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBrowserClockClicked"
-                            ToolTip="Ignore browsers and keep the idle clock on screen"/>
-                    <Button x:Name="BtnBrowserLyrics" Content="Lyrics (Clock if none)" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnBrowserLyricsClicked"
-                            ToolTip="Show synced lyrics for music videos and the clock for everything else"/>
-                    <Button x:Name="BtnBrowserPlayer" Content="Always Show Player" Style="{StaticResource ToolbarPillButton}" Click="OnBrowserPlayerClicked"
-                            ToolTip="Show the player for any browser media, with lyrics when available"/>
-                    <CheckBox x:Name="ChkPacingPill" VerticalAlignment="Center" Margin="16,0,0,0"
-                              Checked="OnPacingPillChecked" Unchecked="OnPacingPillChecked"
-                              ToolTip="The Dynamic Word Pacing notice when fullscreen enters Kinetic mode">
-                        <TextBlock Text="Show Dynamic Pacing Pill" FontSize="10.5" Foreground="#D4D4D8"/>
-                    </CheckBox>
+                    <!-- Vibe monitor (only with two or more displays) -->
+                    <DockPanel x:Name="VibeMonitorRow" Visibility="Collapsed">
+                        <TextBlock DockPanel.Dock="Left" Text="Vibe Display:" Style="{StaticResource ToolbarLabel}" VerticalAlignment="Top" Margin="0,4,6,0"/>
+                        <WrapPanel x:Name="VibeMonitorOptions"/>
+                    </DockPanel>
                 </StackPanel>
-
-                <!-- Row 4: Album art size -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,0">
-                    <TextBlock Text="Album Art Size:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <Button x:Name="BtnArtCompact" Content="Compact" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="44px"/>
-                    <Button x:Name="BtnArtSmall" Content="Small" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="54px"/>
-                    <Button x:Name="BtnArtMedium" Content="Medium" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="64px"/>
-                    <Button x:Name="BtnArtLarge" Content="Large" Style="{StaticResource ToolbarPillButton}" Margin="0,0,3,0" Click="OnAlbumArtPresetClicked" ToolTip="80px"/>
-                    <Button x:Name="BtnArtDefault" Content="Default" Style="{StaticResource ToolbarPillButton}" Margin="0,0,10,0" Click="OnAlbumArtPresetClicked" ToolTip="150px"/>
-                    <Slider x:Name="SliderAlbumArt" Style="{StaticResource ModernSlider}" Width="120" Minimum="36" Maximum="180" Value="150"
-                            SmallChange="2" LargeChange="10" ValueChanged="OnAlbumArtSizeChanged"/>
-                    <TextBlock x:Name="LblAlbumArt" Text="150px" FontSize="10" Foreground="#D4D4D8" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                </StackPanel>
-
-                <!-- Row 5: Vibe monitor (only with two or more displays) -->
-                <DockPanel x:Name="VibeMonitorRow" Visibility="Collapsed" Margin="0,8,0,0">
-                    <TextBlock DockPanel.Dock="Left" Text="Vibe Display / Monitor:" FontSize="10.5" FontWeight="SemiBold" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <WrapPanel x:Name="VibeMonitorOptions"/>
-                </DockPanel>
-            </StackPanel>
-        </Border>
+                </ScrollViewer>
+            </Border>
+        </Popup>
 
         <!-- Widget card -->
         <Border Grid.Row="1" x:Name="CardBorder" CornerRadius="22" ClipToBounds="True" Background="Transparent"
@@ -395,7 +399,10 @@
 
                         <Grid>
                             <Canvas x:Name="LyricsOnlyCanvas" ClipToBounds="True"/>
-                            <Canvas x:Name="LyricsOnlyMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                            <!-- Moonlight Bloom; the fisheye is a shader on the stage (see MainWindow.Fisheye.cs) -->
+                            <Grid x:Name="LyricsOnlyMoonlightStage" Background="Transparent">
+                                <Canvas x:Name="LyricsOnlyMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                            </Grid>
                         </Grid>
                     </Border>
                 </Grid>
@@ -479,7 +486,10 @@
 
                         <Grid>
                             <Canvas x:Name="SideLyricsCanvas" ClipToBounds="True"/>
-                            <Canvas x:Name="SideMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                            <!-- Moonlight Bloom; the fisheye is a shader on the stage (see MainWindow.Fisheye.cs) -->
+                            <Grid x:Name="SideMoonlightStage" Background="Transparent">
+                                <Canvas x:Name="SideMoonlightCanvas" ClipToBounds="True" Visibility="Collapsed"/>
+                            </Grid>
                         </Grid>
                     </Border>
                 </Grid>

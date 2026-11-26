@@ -62,6 +62,7 @@ public partial class MainWindow : Window
     {
         style = AppSettings.NormalizeAnimationStyle(style);
         bool wasMoonlight = _settings.IsMoonlightBloom;
+        _settings.RestoreVibeLayout = false;
         _settings.AnimationStyle = style;
         _trayService?.UpdateAnimationStyleState(style);
 
@@ -99,15 +100,16 @@ public partial class MainWindow : Window
         }
 
         bool moonlight = _settings.IsMoonlightBloom;
-        MoonlightBackdrop.Visibility = moonlight ? Visibility.Visible : Visibility.Collapsed;
+        bool moonlightCard = UsesMoonlightCard;
+        MoonlightBackdrop.Visibility = moonlightCard ? Visibility.Visible : Visibility.Collapsed;
         LyricsOnlyMoonlightCanvas.Visibility = moonlight ? Visibility.Visible : Visibility.Collapsed;
         SideMoonlightCanvas.Visibility = moonlight ? Visibility.Visible : Visibility.Collapsed;
         LyricsOnlyCanvas.Visibility = moonlight ? Visibility.Collapsed : Visibility.Visible;
         SideLyricsCanvas.Visibility = moonlight ? Visibility.Collapsed : Visibility.Visible;
-        ApplyCardGlowStyle(moonlight);
+        ApplyCardGlowStyle(moonlightCard);
 
-        // Moonlight Bloom brings its own card
-        if (moonlight)
+        // With Glassify, Moonlight Bloom brings its own card
+        if (moonlightCard)
         {
             CardBorder.Background = Brushes.Transparent;
             GlassBackgroundContainer.Visibility = Visibility.Collapsed;
@@ -143,7 +145,6 @@ public partial class MainWindow : Window
             LyricsOnlyView.Visibility = Visibility.Collapsed;
             SideBySideView.Visibility = Visibility.Collapsed;
             AlbumOnlyView.Visibility = Visibility.Visible;
-            AlignTogglePanel.Visibility = Visibility.Collapsed;
             TrackSwitchBanner.Visibility = Visibility.Collapsed;
         }
         else if (mode == "LyricsOnly")
@@ -151,16 +152,16 @@ public partial class MainWindow : Window
             LyricsOnlyView.Visibility = Visibility.Visible;
             SideBySideView.Visibility = Visibility.Collapsed;
             AlbumOnlyView.Visibility = Visibility.Collapsed;
-            AlignTogglePanel.Visibility = Visibility.Visible;
         }
         else
         {
             LyricsOnlyView.Visibility = Visibility.Collapsed;
             SideBySideView.Visibility = Visibility.Visible;
             AlbumOnlyView.Visibility = Visibility.Collapsed;
-            AlignTogglePanel.Visibility = Visibility.Collapsed;
             TrackSwitchBanner.Visibility = Visibility.Collapsed;
         }
+
+        ApplyWidgetFisheye();
     }
 
     private static LinearGradientBrush BuildSpecularBrush(Color accent)
@@ -184,12 +185,26 @@ public partial class MainWindow : Window
         CardDropShadow.Opacity = _settings.GamingMode ? 0.0 : moonlight ? 0.14 : 0.5;
     }
 
+    private bool UsesMoonlightCard => _settings.IsMoonlightBloom && _settings.BackgroundStyle == "Glass";
+
+    private static readonly Brush PillBrush = Frozen(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush PillActiveBrush = Frozen(Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush PillBorder = Frozen(Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush PillActiveBorder = Frozen(Color.FromRgb(0xD4, 0xD4, 0xD8));
+
+    private static Brush Frozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
     private void UpdateToolbarButtons()
     {
-        var activeBrush = new SolidColorBrush(Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF));
-        var defaultBrush = new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
-        var activeBorder = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD8));
-        var defaultBorder = new SolidColorBrush(Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF));
+        var activeBrush = PillActiveBrush;
+        var defaultBrush = PillBrush;
+        var activeBorder = PillActiveBorder;
+        var defaultBorder = PillBorder;
 
         BtnModeLyricsOnly.Background = _settings.DisplayMode == "LyricsOnly" ? activeBrush : defaultBrush;
         BtnModeLyricsOnly.BorderBrush = _settings.DisplayMode == "LyricsOnly" ? activeBorder : defaultBorder;
@@ -233,6 +248,9 @@ public partial class MainWindow : Window
         BtnMotionFluid.BorderBrush = isMoonlight ? defaultBorder : activeBorder;
         BtnMotionMoonlight.Background = isMoonlight ? activeBrush : defaultBrush;
         BtnMotionMoonlight.BorderBrush = isMoonlight ? activeBorder : defaultBorder;
+        BtnFisheye.Visibility = isMoonlight ? Visibility.Visible : Visibility.Collapsed;
+        BtnFisheye.Background = _settings.WidgetFisheyeEnabled ? activeBrush : defaultBrush;
+        BtnFisheye.BorderBrush = _settings.WidgetFisheyeEnabled ? activeBorder : defaultBorder;
 
         ChkThemeLyrics.IsChecked = _settings.ThemeColoredLyrics;
 
@@ -295,6 +313,7 @@ public partial class MainWindow : Window
         ChkThemeLyrics.IsChecked = enabled;
         _trayService?.UpdateThemeColoredLyricsState(enabled);
         SettingsService.Save(_settings);
+        UpdatePresetHighlight();
         ApplyThemedLyricColors(_currentPalette, crossfade: false);
         if (IsFullscreenActive && _vibeWindow != null)
         {
@@ -323,6 +342,11 @@ public partial class MainWindow : Window
         _currentThemedLyricColors = ComputeCurrentLyricColors(palette, _settings.ThemeColoredLyrics);
         ApplyLyricColorsToVisuals(_lyricsOnlyVisuals, _currentThemedLyricColors, crossfade && !isGaming, isGaming);
         ApplyLyricColorsToVisuals(_sideLyricsVisuals, _currentThemedLyricColors, crossfade && !isGaming, isGaming);
+
+        // Moonlight Bloom follows the same switch: album colours when on, plain silver when off
+        var tint = _settings.ThemeColoredLyrics ? MoonlightTint.FromPalette(palette.Primary, palette.Accent, palette.IsMonochrome) : null;
+        _lyricsOnlyMoonlight.SetTint(tint);
+        _sideMoonlight.SetTint(tint);
     }
 
     private static void ApplyLyricColorsToVisuals(List<LyricLineVisualItem> visuals, ThemedLyricColors colors, bool crossfade, bool isGamingMode = false)
@@ -339,6 +363,7 @@ public partial class MainWindow : Window
             ChkAudioReactive.IsChecked = enabled;
         }
         SettingsService.Save(_settings);
+        UpdatePresetHighlight();
         _audioBeatService.UpdateState(_mediaService.IsPlaying, _settings.GamingMode, enabled);
     }
 
@@ -352,6 +377,7 @@ public partial class MainWindow : Window
         Background = Brushes.Transparent;
         _settings.GamingMode = enabled;
         _trayService?.UpdateGamingModeState(enabled);
+        UpdateFullscreenPill();
         if (ChkGamingMode.IsChecked != enabled)
         {
             ChkGamingMode.IsChecked = enabled;
@@ -367,10 +393,12 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine($"Failed to set ProcessRenderMode: {ex.Message}");
         }
 
-        double cardShadowOpacity = enabled ? 0.0 : _settings.IsMoonlightBloom ? 0.14 : 0.5;
+        double cardShadowOpacity = enabled ? 0.0 : UsesMoonlightCard ? 0.14 : 0.5;
         double auraShadowOpacity = enabled ? 0.0 : 0.55;
 
         CardDropShadow.Opacity = cardShadowOpacity;
+        ApplyEffectBudget();
+        ApplyWidgetFisheye();
         SideAlbumAuraGlow.Opacity = auraShadowOpacity;
         AlbumOnlyShadow.Opacity = auraShadowOpacity;
 
